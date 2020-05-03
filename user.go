@@ -20,9 +20,6 @@ type game struct {
 type user struct {
 	userID              string
 	currentGames        map[string]game
-	profileURL          string
-	graphType           string
-	isIgnored           bool
 	currentLoadedImages []string
 	mutex               sync.Mutex
 }
@@ -74,13 +71,13 @@ type container struct {
 }
 
 //Creates a new user and adds it to the container
-func (c *container) add(userID string, profileURL string) {
+func (c *container) add(userID string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 	if c.exists(userID) == true {
 		return
 	}
-	c.users[userID] = &user{userID: userID, profileURL: profileURL, currentGames: make(map[string]game)}
+	c.users[userID] = &user{userID: userID, currentGames: make(map[string]game)}
 }
 
 //Checks to see if the user exists
