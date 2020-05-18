@@ -1,6 +1,9 @@
 //settings.go
 //Contains methods for settings menu
-//
+//starMenu is called first which adds the menu to the global
+//handleMsgInit is called to get the inital setting choice and will keep being called unless they enter a valid option
+//handleMsgSetting is called when they pick an option
+//save is called and then delete is called to remove the menu from the global
 
 package main
 

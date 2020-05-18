@@ -18,10 +18,9 @@ type game struct {
 }
 
 type user struct {
-	userID              string
-	currentGames        map[string]game
-	currentLoadedImages []string
-	mutex               sync.Mutex
+	userID       string
+	currentGames map[string]game
+	mutex        sync.Mutex
 }
 
 //Method called when a user starts playing a game
@@ -57,11 +56,6 @@ func (u *user) gameExists(name string) bool {
 		return true
 	}
 	return false
-}
-
-//Creates the photo
-func (u *user) createPhoto() {
-
 }
 
 //Struct to hold the users and methods to add and get

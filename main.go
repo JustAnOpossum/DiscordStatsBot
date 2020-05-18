@@ -102,7 +102,49 @@ func newMessage(m *gateway.MessageCreateEvent) {
 			bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Embed: msg})
 		}
 	} else {
-		fmt.Println("Not DM")
+		//Inital checks to make sure the bot is mentioned
+		if len(m.Mentions) == 0 {
+			return
+		}
+		if me, _ := bot.Me(); me.ID != m.Mentions[0].ID {
+			return
+		}
+
+		//Var to see what user was mentioned
+		var mentionedUser string
+
+		//User getting their own stats
+		if len(m.Mentions) == 1 {
+			mentionedUser = m.Author.ID.String()
+		}
+		//User getting stats for another user
+		if len(m.Mentions) == 2 {
+			mentionedUser = m.Mentions[1].Member.User.ID.String()
+		}
+
+		image := imageGenerate{
+			dir:        "exampleImg",
+			profileURL: "https://red-panda.me/img/full/3g5wej.png",
+		}
+		image.setup()
+		var imagePath string
+		imagePath, err := image.createImage()
+
+		if err != nil {
+			imagePath = "error.png"
+		}
+		file, err := os.Open(imagePath)
+		defer file.Close()
+		bot.SendMessageComplex(m.ChannelID, api.SendMessageData{
+			Content: "Here your stats!",
+			Files: []api.SendMessageFile{
+				{
+					Name:   "Stats.png",
+					Reader: file,
+				},
+			},
+		})
+		image.cleanup()
 	}
 }
 
