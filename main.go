@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"path"
 	"strconv"
 	"syscall"
 	"time"
@@ -110,28 +111,37 @@ func newMessage(m *gateway.MessageCreateEvent) {
 			return
 		}
 
+		//Sends a welcome message to know that the stats are being generated
+		welcomeMsg, _ := bot.SendMessage(m.ChannelID, "Creating Your Stats, Please Wait...", nil)
+
 		//Var to see what user was mentioned
-		var mentionedUser string
+		var mentionedUser discord.Snowflake
 
 		//User getting their own stats
 		if len(m.Mentions) == 1 {
-			mentionedUser = m.Author.ID.String()
+			mentionedUser = m.Author.ID
 		}
 		//User getting stats for another user
 		if len(m.Mentions) == 2 {
-			mentionedUser = m.Mentions[1].Member.User.ID.String()
+			mentionedUser = m.Mentions[1].Member.User.ID
 		}
 
+		//Gets the member from the snowflake
+		member, _ := bot.Member(m.GuildID, mentionedUser)
+		currentDir, _ := os.Getwd()
+
 		image := imageGenerate{
-			dir:        "exampleImg",
-			profileURL: "https://red-panda.me/img/full/3g5wej.png",
+			dir:        path.Join(os.TempDir(), m.Author.ID.String()),
+			staticDir:  path.Join(currentDir, "genImage", "Static"),
+			profileURL: member.User.AvatarURL(),
+			userID:     member.User.ID.String(),
 		}
+		//Sets up the image to be created
 		image.setup()
 		var imagePath string
 		imagePath, err := image.createImage()
-
 		if err != nil {
-			imagePath = "error.png"
+			imagePath = path.Join(currentDir, "genImage", "Static", "avatarError.png")
 		}
 		file, err := os.Open(imagePath)
 		defer file.Close()
@@ -145,6 +155,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 			},
 		})
 		image.cleanup()
+		bot.DeleteMessage(m.ChannelID, welcomeMsg.ID)
 	}
 }
 
