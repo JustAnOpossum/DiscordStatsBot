@@ -186,11 +186,11 @@ func newMessage(m *gateway.MessageCreateEvent) {
 			name:       member.User.Username,
 		}
 		//Sets up the image to be created
-		imgCaption := "Here your stats!"
+		imgCaption := "Here your stats! ("
 		var imagePath string
 		top5, err := image.setup()
-		top5 = strings.ReplaceAll(top5, "\n", " ")
-		imgCaption += " " + top5
+		top5 = strings.ReplaceAll(top5, "\n", ", ")
+		imgCaption += " " + top5 + ")"
 		if err != nil {
 			imagePath = path.Join(currentDir, "genImage", "Static", "avatarError.png")
 			imgCaption = "An error occured in image setup: " + err.Error() + "\nPlease report this error to NerdyRedPanda#7480"
