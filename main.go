@@ -37,7 +37,7 @@ func main() {
 	//Sets up the connection to the database
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("DB_STRING")))
 	if err != nil {
 		panic(err)
 	}
@@ -186,11 +186,11 @@ func newMessage(m *gateway.MessageCreateEvent) {
 			name:       member.User.Username,
 		}
 		//Sets up the image to be created
-		imgCaption := "Here your stats! ("
+		imgCaption := "Here your stats! \n("
 		var imagePath string
 		top5, err := image.setup()
-		top5 = strings.ReplaceAll(top5, "\n", ", ")
-		imgCaption += " " + top5 + ")"
+		top5 = strings.Replace(top5, "\n", ", ", 4)
+		imgCaption += top5 + ")"
 		if err != nil {
 			imagePath = path.Join(currentDir, "genImage", "Static", "avatarError.png")
 			imgCaption = "An error occured in image setup: " + err.Error() + "\nPlease report this error to NerdyRedPanda#7480"
