@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -94,7 +93,8 @@ func main() {
 			case <-statusUpdate.C:
 				var playingStr string
 				if flip {
-					playingStr = "Tracking stats for " + strconv.Itoa(totalGuilds) + " servers!"
+					// playingStr = "Tracking stats for " + strconv.Itoa(totalGuilds) + " servers!"
+					playingStr = "NEW UPDATE! Custom status is working + new settings"
 					flip = false
 				} else {
 					playingStr = "@ to get stats"
@@ -175,7 +175,9 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		}
 
 		//Gets the member from the snowflake
-		member, _ := bot.Member(m.GuildID, mentionedUser)
+		fmt.Println(mentionedUser)
+		member, err := bot.Member(m.GuildID, mentionedUser)
+		fmt.Println(err)
 		currentDir, _ := os.Getwd()
 
 		image := imageGenerate{
@@ -188,7 +190,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		//Sets up the image to be created
 		imgCaption := "Here your stats!"
 		var imagePath string
-		err := image.setup()
+		err = image.setup()
 		if err != nil {
 			imagePath = path.Join(currentDir, "genImage", "Static", "avatarError.png")
 			imgCaption = "An error occured in image setup: " + err.Error() + "\nPlease report this error to NerdyRedPanda#7480"
