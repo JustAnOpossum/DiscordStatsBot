@@ -62,6 +62,7 @@ func (img *imageGenerate) setup() error {
 	var stats []stat
 	cursor, _ := statsCollection.Find(ctx, bson.M{"id": img.userID}, &options.FindOptions{
 		Limit: &limit,
+		Sort:  bson.M{"hours": -1},
 	})
 	cursor.All(ctx, &stats)
 
