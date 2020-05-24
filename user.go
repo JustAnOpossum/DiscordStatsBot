@@ -4,9 +4,12 @@
 package main
 
 import (
-	"fmt"
+	"context"
 	"sync"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 //Global to hold the container so it can be accessed by any method
@@ -41,13 +44,22 @@ func (u *user) stopPlaying(name string) {
 		return
 	}
 	time := time.Now().Sub(u.currentGames[name].timeStarted)
-	u.saveTime(time.Hours())
+	u.saveTime(time.Hours(), u.currentGames[name].name)
 	delete(u.currentGames, name)
 }
 
 //Saves the time to the database
-func (u *user) saveTime(time float64) {
-	fmt.Println(time)
+func (u *user) saveTime(timePlaying float64, game string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var userStat stat
+	err := statsCollection.FindOne(ctx, bson.M{"id": u.userID, "game": game}).Decode(&userStat)
+	//Called if there are no games with this name and it inserts the first game
+	if err == mongo.ErrNoDocuments {
+		statsCollection.InsertOne(ctx, stat{ID: u.userID, Game: game, Hours: timePlaying, Ignore: false})
+		return
+	}
+	statsCollection.UpdateOne(ctx, bson.M{"id": u.userID, "game": game}, bson.M{"$set": bson.M{"hours": userStat.Hours + timePlaying}})
 }
 
 //Checks to see if a game exists in their currently playing games
@@ -56,6 +68,12 @@ func (u *user) gameExists(name string) bool {
 		return true
 	}
 	return false
+}
+
+func (u *user) createSettings() {
+	ctx, close := context.WithTimeout(context.Background(), time.Second*5)
+	defer close()
+	settingCollection.InsertOne(ctx, setting{ID: u.userID, GraphType: "bar", MentionForStats: true})
 }
 
 //Struct to hold the users and methods to add and get

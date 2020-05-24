@@ -8,12 +8,14 @@
 package main
 
 import (
+	"context"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/discord"
 	"github.com/diamondburned/arikawa/gateway"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 //Global to keep track of state of settings menu
@@ -83,7 +85,7 @@ func stopMenu(s *settingsMenu) {
 }
 
 //Generates the main menu
-func genSetting(setting string) (string, []string) {
+func genSetting(setting string, userID string) (string, []string) {
 	settingStr := setting + " Settings (Type \"cancel\" to cancel)\n\n"
 	var options []string
 	switch setting {
@@ -92,10 +94,26 @@ func genSetting(setting string) (string, []string) {
 		options = []string{"bar", "pie"}
 		break
 	case "hide":
-		//TODO: Database call here to populate string
+		var hiddenGames []stat
+		ctx, close := context.WithTimeout(context.Background(), time.Second*5)
+		defer close()
+		cursor, _ := statsCollection.Find(ctx, bson.M{"id": userID, "ignore": false})
+		cursor.All(ctx, &hiddenGames)
+		for i := range hiddenGames {
+			settingStr += strconv.Itoa(i+1) + ". " + hiddenGames[i].Game
+			options = append(options, hiddenGames[i].Game)
+		}
 		break
 	case "show":
-		//TODO: Database call here to populate string
+		var shownGames []stat
+		ctx, close := context.WithTimeout(context.Background(), time.Second*5)
+		defer close()
+		cursor, _ := statsCollection.Find(ctx, bson.M{"id": userID, "ignore": true})
+		cursor.All(ctx, &shownGames)
+		for i := range shownGames {
+			settingStr += strconv.Itoa(i+1) + ". " + shownGames[i].Game
+			options = append(options, shownGames[i].Game)
+		}
 		break
 	case "mention":
 		settingStr += "1. Mentions Enabled\n2. Mentions Disabled"
@@ -120,7 +138,7 @@ func (s *settingsMenu) handleMsgInit(m *gateway.MessageCreateEvent) string {
 	}
 	if found {
 		s.settingChange = m.Content
-		settingStr, sliceOptions := genSetting(m.Content)
+		settingStr, sliceOptions := genSetting(m.Content, m.Author.ID.String())
 		s.options = sliceOptions
 		return settingStr
 	}
@@ -148,9 +166,26 @@ func (s *settingsMenu) handleMsgSetting(m *gateway.MessageCreateEvent) string {
 
 //Saves the setting back into the database
 func (s *settingsMenu) save(option int) {
-	//Case for true false settings
-	if _, err := strconv.ParseBool(s.options[option]); err != nil {
-		//TODO: Database call to save setting
+	ctx, close := context.WithTimeout(context.Background(), time.Second*5)
+	defer close()
+	//Switch for changing the setting
+	switch s.settingChange {
+	case "graph":
+		settingCollection.UpdateOne(ctx, bson.M{"id": s.userID}, bson.M{"$set": bson.M{"graphtype": s.options[option]}})
+		break
+	case "hide":
+		statsCollection.UpdateOne(ctx, bson.M{"id": s.userID, "game": s.options[option]}, bson.M{"$set": bson.M{"ignore": true}})
+		break
+	case "show":
+		statsCollection.UpdateOne(ctx, bson.M{"id": s.userID, "game": s.options[option]}, bson.M{"$set": bson.M{"ignore": false}})
+		break
+	case "mention":
+		parsedBool, _ := strconv.ParseBool(s.options[option])
+		settingCollection.UpdateOne(ctx, bson.M{"id": s.userID}, bson.M{"$set": bson.M{"mentionforstats": parsedBool}})
+		break
+	case "delete":
+		settingCollection.DeleteOne(ctx, bson.M{"id": s.userID})
+		statsCollection.DeleteMany(ctx, bson.M{"id": s.userID})
+		break
 	}
-
 }

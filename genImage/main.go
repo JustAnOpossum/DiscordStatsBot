@@ -36,7 +36,7 @@ var pixelWidthBetween = [5]float64{0, 305, 205, 155, 125}
 var pixelWidthStart = [5]float64{620, 475, 420, 395, 380}
 
 //Environment vars have dir names
-//data is tructed like this
+//data is structed like this
 //1: Total Hours
 //2: Total Games
 //3: Name
@@ -55,6 +55,9 @@ func main() {
 	games := make([]gameInfo, 0)
 	//This loops gets all the info for the games and adds it to a object that can be passed later
 	for i := 5; i < len(params); i++ {
+		if params[i] == "" {
+			break
+		}
 		imageFile, err := os.Open(path.Join(imageDir, params[i], "icon"))
 		if err != nil {
 			panic(err)
