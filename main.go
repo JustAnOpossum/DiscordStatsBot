@@ -171,13 +171,11 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		}
 		//User getting stats for another user
 		if len(m.Mentions) == 2 {
-			mentionedUser = m.Mentions[1].Member.User.ID
+			mentionedUser = m.Mentions[1].User.ID
 		}
 
 		//Gets the member from the snowflake
-		fmt.Println(mentionedUser)
 		member, err := bot.Member(m.GuildID, mentionedUser)
-		fmt.Println(err)
 		currentDir, _ := os.Getwd()
 
 		image := imageGenerate{
@@ -190,7 +188,9 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		//Sets up the image to be created
 		imgCaption := "Here your stats!"
 		var imagePath string
-		err = image.setup()
+		top5, err := image.setup()
+		top5 = strings.ReplaceAll(top5, "\n", " ")
+		imgCaption += " " + top5
 		if err != nil {
 			imagePath = path.Join(currentDir, "genImage", "Static", "avatarError.png")
 			imgCaption = "An error occured in image setup: " + err.Error() + "\nPlease report this error to NerdyRedPanda#7480"

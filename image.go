@@ -53,7 +53,7 @@ func getAndSaveImg(ctx context.Context, gameName string, imgDir string) error {
 }
 
 //Sets up the dir for image generation
-func (img *imageGenerate) setup() error {
+func (img *imageGenerate) setup() (string, error) {
 	err := os.Mkdir(img.dir, 0744)
 
 	ctx, close := context.WithTimeout(context.Background(), time.Second*15)
@@ -77,7 +77,7 @@ func (img *imageGenerate) setup() error {
 		if err == mongo.ErrNoDocuments {
 			err = getAndSaveImg(ctx, stats[i].Game, img.dir)
 			if err != nil {
-				return err
+				return "", err
 			}
 			//Case if it does exist
 		} else {
@@ -87,12 +87,12 @@ func (img *imageGenerate) setup() error {
 				iconCollection.DeleteOne(ctx, bson.M{"name": userGame.Name})
 				err = getAndSaveImg(ctx, stats[i].Game, img.dir)
 				if err != nil {
-					return err
+					return "", err
 				}
 			}
 			res, err := http.Get(userGame.URL)
 			if err != nil {
-				return err
+				return "", err
 			}
 			defer res.Body.Close()
 			body, _ := ioutil.ReadAll(res.Body)
@@ -108,7 +108,7 @@ func (img *imageGenerate) setup() error {
 	var settingsMenu setting
 	cursor, err = statsCollection.Find(ctx, bson.M{"id": img.userID})
 	if err != nil {
-		return err
+		return "", err
 	}
 	cursor.All(ctx, &allStats)
 	for i := range allStats {
@@ -116,13 +116,13 @@ func (img *imageGenerate) setup() error {
 	}
 	distinct, err := statsCollection.Distinct(ctx, "game", bson.M{"id": img.userID})
 	if err != nil {
-		return err
+		return "", err
 	}
 	gamesPlayed = len(distinct)
 	err = settingCollection.FindOne(ctx, bson.M{"id": img.userID}).Decode(&settingsMenu)
 
 	ioutil.WriteFile(path.Join(img.dir, "data"), []byte(strconv.Itoa(int(hoursPlayed))+"\n"+strconv.Itoa(gamesPlayed)+"\n"+img.name+"\n"+settingsMenu.GraphType+"\n"+img.profileURL+"\n"+top5Games), 0744)
-	return nil
+	return top5Games, nil
 }
 
 //Creates the image
