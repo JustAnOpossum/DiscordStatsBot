@@ -60,7 +60,7 @@ func (img *imageGenerate) setup() (string, error) {
 	defer close()
 	var limit int64 = 5
 	var stats []stat
-	cursor, _ := statsCollection.Find(ctx, bson.M{"id": img.userID}, &options.FindOptions{
+	cursor, _ := statsCollection.Find(ctx, bson.M{"id": img.userID, "ignore": false}, &options.FindOptions{
 		Limit: &limit,
 		Sort:  bson.M{"hours": -1},
 	})
