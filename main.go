@@ -263,7 +263,6 @@ func presenceUpdate(p *gateway.PresenceUpdateEvent) {
 			return
 		}
 	}
-	fmt.Println("Called")
 
 	//Adds user to the container if does not exist
 	if users.exists(userID) != true {
