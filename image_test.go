@@ -67,7 +67,7 @@ func TestImageSetup(t *testing.T) {
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("DB_STRING")))
 	if err != nil {
-		t.Error("Error connecting to database")
+		t.Error("Error connecting to database " + os.Getenv("DB_STRING"))
 	}
 	defer client.Disconnect(ctx)
 	//Pings the server to make sure it is online
