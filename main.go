@@ -25,6 +25,7 @@ import (
 var bot *session.Session
 var totalGuilds int
 var guildBlacklist []string
+var bots map[string]bool
 
 var statsCollection *mongo.Collection
 var iconCollection *mongo.Collection
@@ -34,6 +35,9 @@ var settingCollection *mongo.Collection
 //1. Connects to discord and set's up bot.
 //2. Adds the handlers for discord
 func main() {
+	//Creats the map to store the bots
+	bots = make(map[string]bool)
+
 	//Sets up the connection to the database
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -113,6 +117,7 @@ func main() {
 	session.AddHandler(presenceUpdate)
 	session.AddHandler(guildAdded)
 	session.AddHandler(newMessage)
+	session.AddHandler(test)
 
 	//Loads guild blacklist
 	blacklists := os.Getenv("BLACKLIST")
@@ -124,6 +129,10 @@ func main() {
 	exitChan := make(chan os.Signal, 1)
 	signal.Notify(exitChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-exitChan
+}
+
+func test(t *gateway.GuildMemberAddEvent) {
+	fmt.Println(t.User.Bot)
 }
 
 //Called when a new message comes in
@@ -232,6 +241,13 @@ func newMessage(m *gateway.MessageCreateEvent) {
 //Called when guild is created, used to track how many guilds the bot is in
 func guildAdded(g *gateway.GuildCreateEvent) {
 	totalGuilds++
+
+	//Tracks the state for bota to be checked aganst later
+	for i := range g.Members {
+		if g.Members[i].User.Bot {
+			bots[g.Members[i].User.ID.String()] = true
+		}
+	}
 }
 
 //Handles presence update
@@ -239,11 +255,15 @@ func presenceUpdate(p *gateway.PresenceUpdateEvent) {
 	//Inital checks to weed out bad data
 	activities := p.Activities
 	userID := p.User.ID.String()
+	if _, ok := bots[p.User.ID.String()]; ok {
+		return
+	}
 	for i := range guildBlacklist {
 		if guildBlacklist[i] == p.GuildID.String() {
 			return
 		}
 	}
+	fmt.Println("Called")
 
 	//Adds user to the container if does not exist
 	if users.exists(userID) != true {
