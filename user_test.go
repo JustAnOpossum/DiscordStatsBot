@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"os"
 	"testing"
 	"time"
 
@@ -24,7 +23,7 @@ func TestStartPlaying(t *testing.T) {
 func TestStopPlaying(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("DB_STRING")))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongo://localhost:27017"))
 	if err != nil {
 		t.Error("Error connecting to database")
 	}

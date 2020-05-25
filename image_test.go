@@ -65,7 +65,7 @@ func TestImageSetup(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(os.Getenv("test")))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI("mongo://localhost:27017"))
 	if err != nil {
 		t.Error("Error connecting to database " + os.Getenv("test") + " after")
 	}
