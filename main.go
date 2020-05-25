@@ -117,7 +117,6 @@ func main() {
 	session.AddHandler(presenceUpdate)
 	session.AddHandler(guildAdded)
 	session.AddHandler(newMessage)
-	session.AddHandler(test)
 
 	//Loads guild blacklist
 	blacklists := os.Getenv("BLACKLIST")
@@ -129,10 +128,6 @@ func main() {
 	exitChan := make(chan os.Signal, 1)
 	signal.Notify(exitChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-exitChan
-}
-
-func test(t *gateway.GuildMemberAddEvent) {
-	fmt.Println(t.User.Bot)
 }
 
 //Called when a new message comes in
