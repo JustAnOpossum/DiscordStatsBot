@@ -1,4 +1,6 @@
 //Methods for creating the image and downloading the game images
+//Sets up the dir for images and creates the images, and removes the image
+//Also has methods for downloading the images and finding the images from a bing search result.
 
 package main
 
@@ -70,7 +72,9 @@ func (img *imageGenerate) setup() (string, error) {
 	//Loops though the stats to find all the game images
 	for i := range stats {
 		var userGame icon
+		//Creates the dir to contain the game data
 		err = os.Mkdir(path.Join(img.dir, stats[i].Game), 0744)
+		//Writes the hours
 		ioutil.WriteFile(path.Join(img.dir, stats[i].Game, "hours"), []byte(strconv.FormatFloat(stats[i].Hours, 'f', -1, 64)), 0744)
 		err := iconCollection.FindOne(ctx, bson.M{"name": stats[i].Game}).Decode(&userGame)
 		//Case if the game img does not exist

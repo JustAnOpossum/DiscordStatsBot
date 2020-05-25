@@ -126,14 +126,11 @@ func main() {
 	<-exitChan
 }
 
+//Called when a new message comes in
+//Handles methods for both the DM channel and the mentioning for stats
 func newMessage(m *gateway.MessageCreateEvent) {
 	if m.Author.Bot {
 		return
-	}
-	for i := range guildBlacklist {
-		if guildBlacklist[i] == m.GuildID.String() {
-			return
-		}
 	}
 
 	if m.GuildID == 0 {
@@ -171,6 +168,14 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		}
 		//User getting stats for another user
 		if len(m.Mentions) == 2 {
+			//Check here to see if the mentioned user has the setting enabled
+			var userSettings setting
+			ctx, close := context.WithTimeout(context.Background(), time.Second*5)
+			defer close()
+			settingCollection.FindOne(ctx, bson.M{"id": m.Mentions[1].User.ID.String()}).Decode(&userSettings)
+			if !userSettings.MentionForStats {
+				return
+			}
 			mentionedUser = m.Mentions[1].User.ID
 		}
 
@@ -188,9 +193,17 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		//Sets up the image to be created
 		imgCaption := "Here your stats! \n("
 		var imagePath string
+		//tops5 is returned so the bot can show the user that their top 5 games are
 		top5, err := image.setup()
-		top5 = strings.Replace(top5, "\n", ", ", 4)
-		imgCaption += top5 + ")"
+		top5arr := strings.Split(top5, "\n")
+		//Loops through the top5 to seperate them and put them into a usable format
+		for i := 0; i < len(top5arr)-1; i++ {
+			if i+1 == len(top5arr)-1 {
+				imgCaption += top5arr[i] + ")"
+			} else {
+				imgCaption += top5arr[i] + ", "
+			}
+		}
 		if err != nil {
 			imagePath = path.Join(currentDir, "genImage", "Static", "avatarError.png")
 			imgCaption = "An error occured in image setup: " + err.Error() + "\nPlease report this error to NerdyRedPanda#7480"
@@ -226,9 +239,6 @@ func presenceUpdate(p *gateway.PresenceUpdateEvent) {
 	//Inital checks to weed out bad data
 	activities := p.Activities
 	userID := p.User.ID.String()
-	if p.User.Bot {
-		return
-	}
 	for i := range guildBlacklist {
 		if guildBlacklist[i] == p.GuildID.String() {
 			return
