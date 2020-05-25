@@ -1,9 +1,10 @@
 language: go
-
 go:
-  - 1.14
-  - master
-
+- 1.14
+- master
 script:
-  - go build
-  - go test
+- go build
+- go test
+env:
+  global:
+    secure: ArGDYehDPDlfDfDlcNbONNJsoBXNvXs54+ilFHmRfo6nyf+vRZE6SMHfyazdK+mCTMV/6JPtUOMAcG13RzAuaDXn+ZKmICrwYWZKVQvwhPAawjewzMVGSdnKhgZpT25NJaQjCJ2FD/LRtgxfVoBqaouGQvv0AQDSDxm57WbbH5LcCSor63jryS+AiaAS7D/qtinD3xkLCVhmyY0Ao2rJt14Y747W65ddFdTBXtkwegkhAlscerBthy6RwvAvRKQrZtX2riE3LhCuaUnqSvI9sDXx3ZQ1i1UrRdSWbEphTj2V2pQCEO6Az1CfZALt/5xwqJuMUdLb0upxxnTWnk1Cm20JH+UYMK+qbpd+Wz3NfYfWdHfGQV2UdefXwu7eCXPMMroJ/47QXDHFY0NGR9MNM8u/iQRSOoOpDgy8jxEl3pTIsdffM/C4I9DXi+QeL60Da53g+6fj8h79aMXYCTdQOrHMc2+S2wRhPY7MStIq3hMi0TwQBOuz2CqkmJPdcAroO8a55xrs/Pgt+pcS69UgFRcTqr7CYbX4bMf/TtkMpmB8mRZijqHecGlKXMlNJk1orBXB+qfeolHweHpgdF9HrCP+Rojpyi5+pXg80G9PS5xbmaQgrT+dC9I2vtHov6fY5+mUvFAyAz5aZlVo3UhI2Hb4JyxGYoQum8pGEC/fm3E=
