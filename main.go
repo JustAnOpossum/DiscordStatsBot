@@ -69,11 +69,10 @@ func main() {
 	session, err := session.New("Bot " + os.Getenv("BOT_TOKEN"))
 	//Identifies intents to receive
 	//1 is guilds (required to get messages when guilds are created))
-	//2 is guild members (tracks when a bot is added)
 	//256 is guild precences (gets presence updates)
 	//512 is guild messages (gets mention messages)
 	//4096 is dms (gets dm messages)
-	session.Gateway.Identifier.Intents = 256 + 1 + 512 + 4096 + 2
+	session.Gateway.Identifier.Intents = 256 + 1 + 512 + 4096
 	bot = session
 	if err != nil {
 		panic(err)
@@ -118,7 +117,6 @@ func main() {
 	session.AddHandler(presenceUpdate)
 	session.AddHandler(guildAdded)
 	session.AddHandler(newMessage)
-	session.AddHandler(memberAdded)
 
 	//Loads guild blacklist
 	blacklists := os.Getenv("BLACKLIST")
@@ -130,13 +128,6 @@ func main() {
 	exitChan := make(chan os.Signal, 1)
 	signal.Notify(exitChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
 	<-exitChan
-}
-
-//Called when a user is added to check if they are a bot and can be added to the bots hash table
-func memberAdded(m *gateway.GuildMemberAddEvent) {
-	if m.User.Bot {
-		bots[m.User.ID.String()] = true
-	}
 }
 
 //Called when a new message comes in
@@ -259,6 +250,11 @@ func presenceUpdate(p *gateway.PresenceUpdateEvent) {
 	//Inital checks to weed out bad data
 	activities := p.Activities
 	userID := p.User.ID.String()
+	//The first update for a bot is true so this tracks if a bot is added or becomes online
+	if p.User.Bot {
+		bots[p.User.ID.String()] = true
+	}
+	//Checks to see if a user is a known bot
 	if _, ok := bots[p.User.ID.String()]; ok {
 		return
 	}
