@@ -134,7 +134,9 @@ func main() {
 
 //Called when a user is added to check if they are a bot and can be added to the bots hash table
 func memberAdded(m *gateway.GuildMemberAddEvent) {
-	bots[m.User.ID.String()] = true
+	if m.User.Bot {
+		bots[m.User.ID.String()] = true
+	}
 }
 
 //Called when a new message comes in

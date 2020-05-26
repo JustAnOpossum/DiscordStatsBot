@@ -26,7 +26,7 @@ var settings = [5]string{"graph", "hide", "show", "mention", "delete"}
 
 //Main menu message embed object
 var mainMenu = &discord.Embed{
-	Title: "Settings for Game Stats Bot",
+	Title: "Settings for Game Stats Bot (Contact NerdyRedPanda#7480 with any issues)",
 	Fields: []discord.EmbedField{
 		{
 			Name:   ":bar_chart:",
