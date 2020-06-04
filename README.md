@@ -1,4 +1,4 @@
-# DiscordStatsBot [![Build Status](https://travis-ci.com/NerdyRedPanda/DiscordStatsBot.svg?branch=master)](https://travis-ci.com/NerdyRedPanda/DiscordStatsBot)
+# [DiscordStatsBot](https://discordapp.com/oauth2/authorize?client_id=461294052529143825&scope=bot&permissions=0) [![Build Status](https://travis-ci.com/NerdyRedPanda/DiscordStatsBot.svg?branch=master)](https://travis-ci.com/NerdyRedPanda/DiscordStatsBot)
 
 <img src="https://red-panda.me/img/botIcon.png" alt="drawing" width="200"/>
 
