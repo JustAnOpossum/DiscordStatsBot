@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -97,8 +98,8 @@ func main() {
 			case <-statusUpdate.C:
 				var playingStr string
 				if flip {
-					// playingStr = "Tracking stats for " + strconv.Itoa(totalGuilds) + " servers!"
-					playingStr = "NEW UPDATE! Custom status is working + new settings"
+					playingStr = "Tracking stats for " + strconv.Itoa(totalGuilds) + " servers!"
+					// playingStr = "NEW UPDATE! Custom status is working + new settings"
 					flip = false
 				} else {
 					playingStr = "@ to get stats"
