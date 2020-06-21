@@ -118,6 +118,7 @@ func main() {
 	session.AddHandler(presenceUpdate)
 	session.AddHandler(guildAdded)
 	session.AddHandler(newMessage)
+	session.AddHandler(guildRemove)
 
 	//Loads guild blacklist
 	blacklists := os.Getenv("BLACKLIST")
@@ -236,6 +237,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 
 //Called when guild is created, used to track how many guilds the bot is in
 func guildAdded(g *gateway.GuildCreateEvent) {
+	fmt.Println("Added Guild")
 	totalGuilds++
 
 	//Tracks the state for bota to be checked aganst later
@@ -244,6 +246,12 @@ func guildAdded(g *gateway.GuildCreateEvent) {
 			bots[g.Members[i].User.ID.String()] = true
 		}
 	}
+}
+
+//Called when guilds are removed in case of kick or discord outage
+func guildRemove(g *gateway.GuildDeleteEvent) {
+	fmt.Println("Removed Guild")
+	totalGuilds--
 }
 
 //Handles presence update
