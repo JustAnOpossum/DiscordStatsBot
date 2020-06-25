@@ -237,7 +237,6 @@ func newMessage(m *gateway.MessageCreateEvent) {
 
 //Called when guild is created, used to track how many guilds the bot is in
 func guildAdded(g *gateway.GuildCreateEvent) {
-	fmt.Println("Added Guild")
 	totalGuilds++
 
 	//Tracks the state for bota to be checked aganst later
@@ -250,7 +249,6 @@ func guildAdded(g *gateway.GuildCreateEvent) {
 
 //Called when guilds are removed in case of kick or discord outage
 func guildRemove(g *gateway.GuildDeleteEvent) {
-	fmt.Println("Removed Guild")
 	totalGuilds--
 }
 
