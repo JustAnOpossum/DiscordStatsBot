@@ -39,6 +39,7 @@ var settingCollection *mongo.Collection
 func main() {
 	//Creats the map to store the bots
 	bots = make(map[string]bool)
+	guilds = make(map[string]bool)
 
 	//Sets up the connection to the database
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
