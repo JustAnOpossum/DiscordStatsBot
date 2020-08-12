@@ -70,6 +70,7 @@ func (u *user) gameExists(name string) bool {
 	return false
 }
 
+//Creates the settings or the user
 func (u *user) createSettings() {
 	ctx, close := context.WithTimeout(context.Background(), time.Second*5)
 	defer close()

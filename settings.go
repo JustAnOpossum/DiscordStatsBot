@@ -186,6 +186,7 @@ func (s *settingsMenu) save(option int) {
 	case "delete":
 		settingCollection.DeleteOne(ctx, bson.M{"id": s.userID})
 		statsCollection.DeleteMany(ctx, bson.M{"id": s.userID})
+		delete(users.users, s.userID)
 		break
 	}
 }
