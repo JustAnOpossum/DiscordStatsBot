@@ -19,4 +19,5 @@ type setting struct {
 	ID              string
 	GraphType       string
 	MentionForStats bool
+	Disable         bool
 }

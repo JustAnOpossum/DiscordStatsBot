@@ -265,10 +265,18 @@ func presenceUpdate(p *gateway.PresenceUpdateEvent) {
 	if _, ok := bots[p.User.ID.String()]; ok {
 		return
 	}
+	//Makes sure the guild it is from is not on the blacklist (For bot list servers)
 	for i := range guildBlacklist {
 		if guildBlacklist[i] == p.GuildID.String() {
 			return
 		}
+	}
+	var checkUser setting
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	defer cancel()
+	settingCollection.FindOne(ctx, bson.M{"id": userID}).Decode(&checkUser)
+	if checkUser.Disable {
+		return
 	}
 
 	//Adds user to the container if does not exist

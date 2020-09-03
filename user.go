@@ -74,7 +74,7 @@ func (u *user) gameExists(name string) bool {
 func (u *user) createSettings() {
 	ctx, close := context.WithTimeout(context.Background(), time.Second*5)
 	defer close()
-	settingCollection.InsertOne(ctx, setting{ID: u.userID, GraphType: "bar", MentionForStats: true})
+	settingCollection.InsertOne(ctx, setting{ID: u.userID, GraphType: "bar", MentionForStats: true, Disable: false})
 }
 
 //Struct to hold the users and methods to add and get
