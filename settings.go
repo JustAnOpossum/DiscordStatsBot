@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diamondburned/arikawa/discord"
-	"github.com/diamondburned/arikawa/gateway"
+	"github.com/diamondburned/arikawa/v2/discord"
+	"github.com/diamondburned/arikawa/v2/gateway"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -189,7 +189,6 @@ func (s *settingsMenu) save(option int) {
 		break
 	case "show":
 		statsCollection.UpdateOne(ctx, bson.M{"id": s.userID, "game": s.options[option]}, bson.M{"$set": bson.M{"ignore": false}})
-		break
 	case "mention":
 		parsedBool, _ := strconv.ParseBool(s.options[option])
 		settingCollection.UpdateOne(ctx, bson.M{"id": s.userID}, bson.M{"$set": bson.M{"mentionforstats": parsedBool}})
