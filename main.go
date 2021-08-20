@@ -13,10 +13,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/diamondburned/arikawa/api"
-	"github.com/diamondburned/arikawa/discord"
-	"github.com/diamondburned/arikawa/gateway"
-	"github.com/diamondburned/arikawa/session"
+	"github.com/diamondburned/arikawa/v2/api"
+	"github.com/diamondburned/arikawa/v2/discord"
+	"github.com/diamondburned/arikawa/v2/gateway"
+	"github.com/diamondburned/arikawa/v2/session"
+	"github.com/diamondburned/arikawa/v2/utils/sendpart"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -24,6 +25,7 @@ import (
 )
 
 var bot *session.Session
+
 var totalGuilds int
 var guilds map[string]bool
 var guildBlacklist []string
@@ -87,8 +89,10 @@ func main() {
 
 	defer session.Close()
 	session.Gateway.UpdateStatus(gateway.UpdateStatusData{
-		Game: &discord.Activity{
-			Name: "@ to get stats",
+		Activities: []discord.Activity{
+			{
+				Name: "Hello",
+			},
 		},
 	})
 	//Switched between normal status and status displaying tracked servers
@@ -108,8 +112,10 @@ func main() {
 					flip = true
 				}
 				session.Gateway.UpdateStatus(gateway.UpdateStatusData{
-					Game: &discord.Activity{
-						Name: playingStr,
+					Activities: []discord.Activity{
+						{
+							Name: playingStr,
+						},
 					},
 				})
 			}
@@ -129,7 +135,7 @@ func main() {
 
 	//Waits for the program to get a signal to close
 	exitChan := make(chan os.Signal, 1)
-	signal.Notify(exitChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	signal.Notify(exitChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
 	<-exitChan
 }
 
@@ -167,7 +173,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		welcomeMsg, _ := bot.SendMessage(m.ChannelID, "Creating Your Stats, Please Wait...", nil)
 
 		//Var to see what user was mentioned
-		var mentionedUser discord.Snowflake
+		var mentionedUser discord.UserID
 
 		//User getting their own stats
 		if len(m.Mentions) == 1 {
@@ -224,7 +230,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		defer file.Close()
 		bot.SendMessageComplex(m.ChannelID, api.SendMessageData{
 			Content: imgCaption,
-			Files: []api.SendMessageFile{
+			Files: []sendpart.File{
 				{
 					Name:   "Stats.png",
 					Reader: file,
