@@ -202,7 +202,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		image := imageGenerate{
 			dir:        path.Join(os.TempDir(), m.Author.ID.String()),
 			staticDir:  path.Join(currentDir, "genImage", "Static"),
-			profileURL: member.User.AvatarURL(),
+			profileURL: member.User.AvatarURL() + "?size=256",
 			userID:     member.User.ID.String(),
 			name:       member.User.Username,
 		}
@@ -212,7 +212,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		//top 5 is returned so the bot can show the user that their top 5 games are
 		top5, err := image.setup()
 		if err != nil {
-			bot.SendMessage(m.ChannelID, "An error occured while creating an image. Please report this error to NerdyRedPanda#7480", nil)
+			bot.SendMessage(m.ChannelID, "An error occured while creating an image."+err.Error()+" Please report this error to NerdyRedPanda#7480", nil)
 			return
 		}
 		top5arr := strings.Split(top5, "\n")
