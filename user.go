@@ -43,7 +43,7 @@ func (u *user) stopPlaying(name string) {
 	if !u.gameExists(name) {
 		return
 	}
-	time := time.Now().Sub(u.currentGames[name].timeStarted)
+	time := time.Since(u.currentGames[name].timeStarted)
 	u.saveTime(time.Hours(), u.currentGames[name].name)
 	delete(u.currentGames, name)
 }
@@ -87,7 +87,7 @@ type container struct {
 func (c *container) add(userID string) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	if c.exists(userID) == true {
+	if c.exists(userID) {
 		return
 	}
 	c.users[userID] = &user{userID: userID, currentGames: make(map[string]game)}

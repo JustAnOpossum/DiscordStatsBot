@@ -91,7 +91,7 @@ func main() {
 	session.Gateway.UpdateStatus(gateway.UpdateStatusData{
 		Activities: []discord.Activity{
 			{
-				Name: "Hello",
+				Name: "@ to get stats",
 			},
 		},
 	})
@@ -105,7 +105,6 @@ func main() {
 				var playingStr string
 				if flip {
 					playingStr = "Tracking stats for " + strconv.Itoa(totalGuilds) + " servers!"
-					// playingStr = "NEW UPDATE! Custom status is working + new settings"
 					flip = false
 				} else {
 					playingStr = "@ to get stats"
@@ -194,6 +193,10 @@ func newMessage(m *gateway.MessageCreateEvent) {
 
 		//Gets the member from the snowflake
 		member, err := bot.Member(m.GuildID, mentionedUser)
+		if err != nil {
+			bot.SendMessage(m.ChannelID, "An error occured within the discord API. Please try again later.", nil)
+			return
+		}
 		currentDir, _ := os.Getwd()
 
 		image := imageGenerate{
@@ -206,8 +209,12 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		//Sets up the image to be created
 		imgCaption := "Here your stats! \n("
 		var imagePath string
-		//tops5 is returned so the bot can show the user that their top 5 games are
+		//top 5 is returned so the bot can show the user that their top 5 games are
 		top5, err := image.setup()
+		if err != nil {
+			bot.SendMessage(m.ChannelID, "An error occured while creating an image. Please report this error to NerdyRedPanda#7480", nil)
+			return
+		}
 		top5arr := strings.Split(top5, "\n")
 		//Loops through the top5 to seperate them and put them into a usable format
 		for i := 0; i < len(top5arr)-1; i++ {
@@ -217,16 +224,14 @@ func newMessage(m *gateway.MessageCreateEvent) {
 				imgCaption += top5arr[i] + ", "
 			}
 		}
-		if err != nil {
-			imagePath = path.Join(currentDir, "genImage", "Static", "avatarError.png")
-			imgCaption = "An error occured in image setup: " + err.Error() + "\nPlease report this error to NerdyRedPanda#7480"
-		}
+
 		imagePath, err = image.createImage()
 		if err != nil {
-			imagePath = path.Join(currentDir, "genImage", "Static", "avatarError.png")
-			imgCaption = "An error occured in image gen: " + err.Error() + "\nPlease report this error to NerdyRedPanda#7480"
+			bot.SendMessage(m.ChannelID, "An error occured while creating an image. Please report this error to NerdyRedPanda#7480", nil)
+			image.cleanup()
+			return
 		}
-		file, err := os.Open(imagePath)
+		file, _ := os.Open(imagePath)
 		defer file.Close()
 		bot.SendMessageComplex(m.ChannelID, api.SendMessageData{
 			Content: imgCaption,
@@ -237,7 +242,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 				},
 			},
 		})
-		// image.cleanup()
+		image.cleanup()
 		bot.DeleteMessage(m.ChannelID, welcomeMsg.ID)
 	}
 }
@@ -286,7 +291,7 @@ func presenceUpdate(p *gateway.PresenceUpdateEvent) {
 	}
 
 	//Adds user to the container if does not exist
-	if users.exists(userID) != true {
+	if !users.exists(userID) {
 		users.add(userID)
 		users.get(userID).createSettings()
 	}

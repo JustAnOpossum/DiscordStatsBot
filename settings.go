@@ -99,7 +99,6 @@ func genSetting(setting string, userID string) (string, []string) {
 	case "graph":
 		settingStr += "1. Bar\n2. Pie"
 		options = []string{"bar", "pie"}
-		break
 	case "hide":
 		var hiddenGames []stat
 		ctx, close := context.WithTimeout(context.Background(), time.Second*5)
@@ -110,7 +109,6 @@ func genSetting(setting string, userID string) (string, []string) {
 			settingStr += strconv.Itoa(i+1) + ". " + hiddenGames[i].Game
 			options = append(options, hiddenGames[i].Game)
 		}
-		break
 	case "show":
 		var shownGames []stat
 		ctx, close := context.WithTimeout(context.Background(), time.Second*5)
@@ -121,19 +119,15 @@ func genSetting(setting string, userID string) (string, []string) {
 			settingStr += strconv.Itoa(i+1) + ". " + shownGames[i].Game
 			options = append(options, shownGames[i].Game)
 		}
-		break
 	case "mention":
 		settingStr += "1. Mentions Enabled\n2. Mentions Disabled"
 		options = []string{"true", "false"}
-		break
 	case "disable":
 		settingStr += "1. Enable data collection\n2. Disable data collection"
 		options = []string{"false", "true"}
-		break
 	case "delete":
 		settingStr += "1. Delete all data, CANNOT BE UNDONE"
 		options = []string{"delete"}
-		break
 	}
 	return settingStr, options
 }
@@ -183,25 +177,20 @@ func (s *settingsMenu) save(option int) {
 	switch s.settingChange {
 	case "graph":
 		settingCollection.UpdateOne(ctx, bson.M{"id": s.userID}, bson.M{"$set": bson.M{"graphtype": s.options[option]}})
-		break
 	case "hide":
 		statsCollection.UpdateOne(ctx, bson.M{"id": s.userID, "game": s.options[option]}, bson.M{"$set": bson.M{"ignore": true}})
-		break
 	case "show":
 		statsCollection.UpdateOne(ctx, bson.M{"id": s.userID, "game": s.options[option]}, bson.M{"$set": bson.M{"ignore": false}})
 	case "mention":
 		parsedBool, _ := strconv.ParseBool(s.options[option])
 		settingCollection.UpdateOne(ctx, bson.M{"id": s.userID}, bson.M{"$set": bson.M{"mentionforstats": parsedBool}})
-		break
 	case "disable":
 		parsedBool, _ := strconv.ParseBool(s.options[option])
 		settingCollection.UpdateOne(ctx, bson.M{"id": s.userID}, bson.M{"$set": bson.M{"disable": parsedBool}})
 		delete(users.users, s.userID)
-		break
 	case "delete":
 		settingCollection.DeleteOne(ctx, bson.M{"id": s.userID})
 		statsCollection.DeleteMany(ctx, bson.M{"id": s.userID})
 		delete(users.users, s.userID)
-		break
 	}
 }

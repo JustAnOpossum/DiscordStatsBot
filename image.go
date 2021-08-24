@@ -44,6 +44,9 @@ func getAndSaveImg(ctx context.Context, gameName string, imgDir string) error {
 		return err
 	}
 	_, err = iconCollection.InsertOne(ctx, bson.M{"name": gameName, "url": imgURL, "hash": hash})
+	if err != nil {
+		return err
+	}
 	res, err := http.Get(imgURL)
 	if err != nil {
 		return err
@@ -57,8 +60,11 @@ func getAndSaveImg(ctx context.Context, gameName string, imgDir string) error {
 //Sets up the dir for image generation
 func (img *imageGenerate) setup() (string, error) {
 	err := os.Mkdir(img.dir, 0744)
+	if err != nil {
+		return "", err
+	}
 
-	ctx, close := context.WithTimeout(context.Background(), time.Second*15)
+	ctx, close := context.WithTimeout(context.Background(), time.Second*45)
 	defer close()
 	var limit int64 = 5
 	var stats []stat
@@ -74,6 +80,9 @@ func (img *imageGenerate) setup() (string, error) {
 		var userGame icon
 		//Creates the dir to contain the game data
 		err = os.Mkdir(path.Join(img.dir, stats[i].Game), 0744)
+		if err != nil {
+			return "", err
+		}
 		//Writes the hours
 		ioutil.WriteFile(path.Join(img.dir, stats[i].Game, "hours"), []byte(strconv.FormatFloat(stats[i].Hours, 'f', -1, 64)), 0744)
 		err := iconCollection.FindOne(ctx, bson.M{"name": stats[i].Game}).Decode(&userGame)
@@ -123,7 +132,7 @@ func (img *imageGenerate) setup() (string, error) {
 		return "", err
 	}
 	gamesPlayed = len(distinct)
-	err = settingCollection.FindOne(ctx, bson.M{"id": img.userID}).Decode(&settingsMenu)
+	settingCollection.FindOne(ctx, bson.M{"id": img.userID}).Decode(&settingsMenu)
 
 	ioutil.WriteFile(path.Join(img.dir, "data"), []byte(strconv.Itoa(int(hoursPlayed))+"\n"+strconv.Itoa(gamesPlayed)+"\n"+img.name+"\n"+settingsMenu.GraphType+"\n"+img.profileURL+"\n"+top5Games), 0744)
 	return top5Games, nil
@@ -159,10 +168,7 @@ func testImg(URL string) bool {
 	}
 	defer res.Body.Close()
 	_, _, err = image.Decode(res.Body)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 //Get's the image from the bing search results
