@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diamondburned/arikawa/v2/discord"
-	"github.com/diamondburned/arikawa/v2/gateway"
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -27,40 +27,40 @@ var menus = make(map[string]*settingsMenu)
 var settings = [6]string{"graph", "hide", "show", "mention", "disable", "delete"}
 
 //Main menu message embed object
-var mainMenu = &discord.Embed{
-	Title: "Settings for Game Stats Bot (Contact NerdyRedPanda#7480 with any issues)",
-	Fields: []discord.EmbedField{
-		{
-			Name:   ":bar_chart:",
-			Value:  "graph - Changes the graph type",
-			Inline: false,
-		},
-		{
-			Name:   ":no_entry_sign:",
-			Value:  "hide - Allows you to hide games from your graph",
-			Inline: false,
-		},
-		{
-			Name:   ":o:",
-			Value:  "show - Allows you to show hidden games",
-			Inline: false,
-		},
-		{
-			Name:   ":bell:",
-			Value:  "mention - Allows other people to get your stats by mentioning you",
-			Inline: false,
-		},
-		{
-			Name:   ":no_entry:",
-			Value:  "disable - Disables bot collecting game data from your account.",
-			Inline: false,
-		},
-		{
-			Name:   ":wastebasket:",
-			Value:  "delete - Deletes all your data.\nWARNING: This cannot be undone",
-			Inline: false,
-		},
-	},
+var mainMenu = []discord.Embed{
+	{Title: "Settings for Game Stats Bot (Contact NerdyRedPanda#7480 with any issues)",
+		Fields: []discord.EmbedField{
+			{
+				Name:   ":bar_chart:",
+				Value:  "graph - Changes the graph type",
+				Inline: false,
+			},
+			{
+				Name:   ":no_entry_sign:",
+				Value:  "hide - Allows you to hide games from your graph",
+				Inline: false,
+			},
+			{
+				Name:   ":o:",
+				Value:  "show - Allows you to show hidden games",
+				Inline: false,
+			},
+			{
+				Name:   ":bell:",
+				Value:  "mention - Allows other people to get your stats by mentioning you",
+				Inline: false,
+			},
+			{
+				Name:   ":no_entry:",
+				Value:  "disable - Disables bot collecting game data from your account.",
+				Inline: false,
+			},
+			{
+				Name:   ":wastebasket:",
+				Value:  "delete - Deletes all your data.\nWARNING: This cannot be undone",
+				Inline: false,
+			},
+		}},
 }
 
 type settingsMenu struct {
@@ -72,7 +72,7 @@ type settingsMenu struct {
 }
 
 //Starts the settings menu flow
-func startMenu(m *gateway.MessageCreateEvent) *discord.Embed {
+func startMenu(m *gateway.MessageCreateEvent) []discord.Embed {
 	s := &settingsMenu{
 		timer:  time.NewTimer(time.Minute * 2),
 		inMenu: true,

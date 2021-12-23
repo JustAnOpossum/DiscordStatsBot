@@ -8,23 +8,21 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
-	"github.com/diamondburned/arikawa/v2/api"
-	"github.com/diamondburned/arikawa/v2/discord"
-	"github.com/diamondburned/arikawa/v2/gateway"
-	"github.com/diamondburned/arikawa/v2/session"
-	"github.com/diamondburned/arikawa/v2/utils/sendpart"
+	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
-var bot *session.Session
+var bot *state.State
 
 var totalGuilds int
 var guilds map[string]bool
@@ -71,60 +69,24 @@ func main() {
 	settingCollection.Indexes().CreateOne(ctx, mongo.IndexModel{Keys: bson.M{"id": 1}, Options: &options.IndexOptions{Unique: &noRepeats}})
 
 	//Set's up the connection to discords api.
-	session, err := session.New("Bot " + os.Getenv("BOT_TOKEN"))
-	//Identifies intents to receive
-	//1 is guilds (required to get messages when guilds are created))
-	//256 is guild precences (gets presence updates)
-	//512 is guild messages (gets mention messages)
-	//4096 is dms (gets dm messages)
-	session.Gateway.Identifier.Intents = 256 + 1 + 512 + 4096
-	bot = session
-	if err != nil {
-		panic(err)
-	}
-	err = session.Open()
-	if err != nil {
-		panic(err)
-	}
-
-	defer session.Close()
-	session.Gateway.UpdateStatus(gateway.UpdateStatusData{
-		Activities: []discord.Activity{
-			{
-				Name: "@ to get stats",
-			},
-		},
-	})
-	//Switched between normal status and status displaying tracked servers
-	statusUpdate := time.NewTicker(time.Second * 10)
-	flip := false
-	go func() {
-		for {
-			select {
-			case <-statusUpdate.C:
-				var playingStr string
-				if flip {
-					playingStr = "Tracking stats for " + strconv.Itoa(totalGuilds) + " servers!"
-					flip = false
-				} else {
-					playingStr = "@ to get stats"
-					flip = true
-				}
-				session.Gateway.UpdateStatus(gateway.UpdateStatusData{
-					Activities: []discord.Activity{
-						{
-							Name: playingStr,
-						},
-					},
-				})
-			}
-		}
-	}()
-
+	session := state.New("Bot " + os.Getenv("BOT_TOKEN"))
 	//Adds handalers for bot
 	session.AddHandler(presenceUpdate)
 	session.AddHandler(guildAdded)
 	session.AddHandler(newMessage)
+	//Identifies intents to receive
+	session.AddIntents(gateway.IntentGuilds | gateway.IntentGuildPresences | gateway.IntentGuildMessages)
+	bot = session
+	if err != nil {
+		panic(err)
+	}
+	discordCtx, discordCancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer discordCancel()
+	err = session.Open(discordCtx)
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
 
 	//Loads guild blacklist
 	blacklists := os.Getenv("BLACKLIST")
@@ -132,10 +94,7 @@ func main() {
 
 	fmt.Println("Bot is started :D")
 
-	//Waits for the program to get a signal to close
-	exitChan := make(chan os.Signal, 1)
-	signal.Notify(exitChan, syscall.SIGINT, syscall.SIGTERM, os.Interrupt)
-	<-exitChan
+	<-discordCtx.Done()
 }
 
 //Called when a new message comes in
@@ -150,14 +109,14 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		if _, ok := menus[m.Author.ID.String()]; ok {
 			if menus[m.Author.ID.String()].settingChange == "" {
 				msg := menus[m.Author.ID.String()].handleMsgInit(m)
-				bot.SendMessage(m.ChannelID, msg, nil)
+				bot.SendMessage(m.ChannelID, msg, discord.Embed{})
 			} else {
 				msg := menus[m.Author.ID.String()].handleMsgSetting(m)
-				bot.SendMessage(m.ChannelID, msg, nil)
+				bot.SendMessage(m.ChannelID, msg, discord.Embed{})
 			}
 		} else {
 			msg := startMenu(m)
-			bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Embed: msg})
+			bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Embeds: msg})
 		}
 	} else {
 		//Inital checks to make sure the bot is mentioned
@@ -169,7 +128,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		}
 
 		//Sends a welcome message to know that the stats are being generated
-		welcomeMsg, _ := bot.SendMessage(m.ChannelID, "Creating Your Stats, Please Wait...", nil)
+		welcomeMsg, _ := bot.SendMessage(m.ChannelID, "Creating Your Stats, Please Wait...", discord.Embed{})
 
 		//Var to see what user was mentioned
 		var mentionedUser discord.UserID
@@ -194,7 +153,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		//Gets the member from the snowflake
 		member, err := bot.Member(m.GuildID, mentionedUser)
 		if err != nil {
-			bot.SendMessage(m.ChannelID, "An error occured within the discord API. Please try again later.", nil)
+			bot.SendMessage(m.ChannelID, "An error occured within the discord API. Please try again later.", discord.Embed{})
 			return
 		}
 		currentDir, _ := os.Getwd()
@@ -212,7 +171,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		//top 5 is returned so the bot can show the user that their top 5 games are
 		top5, err := image.setup()
 		if err != nil {
-			bot.SendMessage(m.ChannelID, "An error occured while creating an image."+err.Error()+" Please report this error to NerdyRedPanda#7480", nil)
+			bot.SendMessage(m.ChannelID, "An error occured while creating an image."+err.Error()+" Please report this error to NerdyRedPanda#7480", discord.Embed{})
 			return
 		}
 		top5arr := strings.Split(top5, "\n")
@@ -227,7 +186,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 
 		imagePath, err = image.createImage()
 		if err != nil {
-			bot.SendMessage(m.ChannelID, "An error occured while creating an image. Please report this error to NerdyRedPanda#7480", nil)
+			bot.SendMessage(m.ChannelID, "An error occured while creating an image. Please report this error to NerdyRedPanda#7480", discord.Embed{})
 			image.cleanup()
 			return
 		}
@@ -243,7 +202,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 			},
 		})
 		image.cleanup()
-		bot.DeleteMessage(m.ChannelID, welcomeMsg.ID)
+		bot.DeleteMessage(m.ChannelID, welcomeMsg.ID, api.AuditLogReason("Finished Stats"))
 	}
 }
 
