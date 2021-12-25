@@ -75,7 +75,7 @@ func main() {
 	session.AddHandler(guildAdded)
 	session.AddHandler(newMessage)
 	//Identifies intents to receive
-	session.AddIntents(gateway.IntentGuilds | gateway.IntentGuildPresences | gateway.IntentGuildMessages)
+	session.AddIntents(gateway.IntentGuilds | gateway.IntentGuildPresences | gateway.IntentGuildMessages | gateway.IntentDirectMessages)
 	bot = session
 	if err != nil {
 		panic(err)
@@ -104,15 +104,17 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		return
 	}
 
+	fmt.Println(m.GuildID)
+
 	if m.GuildID == 0 {
 		//Two cases, if settings in in progress than hand it to the settings menu and if it isn't send initial message and start menu
 		if _, ok := menus[m.Author.ID.String()]; ok {
 			if menus[m.Author.ID.String()].settingChange == "" {
 				msg := menus[m.Author.ID.String()].handleMsgInit(m)
-				bot.SendMessage(m.ChannelID, msg, discord.Embed{})
+				bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Content: msg})
 			} else {
 				msg := menus[m.Author.ID.String()].handleMsgSetting(m)
-				bot.SendMessage(m.ChannelID, msg, discord.Embed{})
+				bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Content: msg})
 			}
 		} else {
 			msg := startMenu(m)
@@ -128,7 +130,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		}
 
 		//Sends a welcome message to know that the stats are being generated
-		welcomeMsg, _ := bot.SendMessage(m.ChannelID, "Creating Your Stats, Please Wait...", discord.Embed{})
+		welcomeMsg, _ := bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Content: "Creating Your Stats. Please Wait..."})
 
 		//Var to see what user was mentioned
 		var mentionedUser discord.UserID
@@ -153,7 +155,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		//Gets the member from the snowflake
 		member, err := bot.Member(m.GuildID, mentionedUser)
 		if err != nil {
-			bot.SendMessage(m.ChannelID, "An error occured within the discord API. Please try again later.", discord.Embed{})
+			bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Content: "An error occured within the discord API. Please try again later."})
 			return
 		}
 		currentDir, _ := os.Getwd()
@@ -171,7 +173,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		//top 5 is returned so the bot can show the user that their top 5 games are
 		top5, err := image.setup()
 		if err != nil {
-			bot.SendMessage(m.ChannelID, "An error occured while creating an image."+err.Error()+" Please report this error to NerdyRedPanda#7480", discord.Embed{})
+			bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Content: "An error occured while creating an image." + err.Error() + " Please report this error to NerdyRedPanda#7480"})
 			return
 		}
 		top5arr := strings.Split(top5, "\n")
@@ -186,7 +188,7 @@ func newMessage(m *gateway.MessageCreateEvent) {
 
 		imagePath, err = image.createImage()
 		if err != nil {
-			bot.SendMessage(m.ChannelID, "An error occured while creating an image. Please report this error to NerdyRedPanda#7480", discord.Embed{})
+			bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Content: "An error occured while creating an image. Please report this error to NerdyRedPanda#7480"})
 			image.cleanup()
 			return
 		}
