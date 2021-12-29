@@ -74,8 +74,9 @@ func main() {
 	session.AddHandler(presenceUpdate)
 	session.AddHandler(guildAdded)
 	session.AddHandler(newMessage)
+	session.AddHandler(newInteraction)
 	//Identifies intents to receive
-	session.AddIntents(gateway.IntentGuilds | gateway.IntentGuildPresences | gateway.IntentGuildMessages | gateway.IntentDirectMessages)
+	session.AddIntents(gateway.IntentGuilds | gateway.IntentGuildPresences | gateway.IntentGuildMessages | gateway.IntentDirectMessages | gateway.IntentGuildIntegrations)
 	bot = session
 	if err != nil {
 		panic(err)
@@ -91,6 +92,12 @@ func main() {
 	//Loads guild blacklist
 	blacklists := os.Getenv("BLACKLIST")
 	guildBlacklist = strings.Split(blacklists, ",")
+
+	//Registers slash and user commands
+	_, err = session.CreateCommand(discord.AppID(303741636259872778), api.CreateCommandData{Name: "getstats", Description: "Create a graph of your hours in games.", Options: nil, NoDefaultPermission: false, Type: discord.ChatInputCommand})
+	if err != nil {
+		panic(err)
+	}
 
 	fmt.Println("Bot is started :D")
 
@@ -279,4 +286,8 @@ func presenceUpdate(p *gateway.PresenceUpdateEvent) {
 			users.get(userID).stopPlaying(name)
 		}
 	}
+}
+
+func newInteraction(interaction *gateway.InteractionCreateEvent) {
+	// bot.CreateInteractionFollowup(interaction.AppID, interaction.Token, api.InteractionResponseData{})
 }
