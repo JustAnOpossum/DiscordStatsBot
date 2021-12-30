@@ -171,7 +171,7 @@ func testImg(URL string) bool {
 	return err == nil
 }
 
-//Get's the image from the bing search results
+//Gets the image from the bing search results
 func getImage(images bingAnswer) string {
 	//First loop checks to see if there is a png image in the array, if there is return it.
 	//If not find jpegs and return that.

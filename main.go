@@ -5,6 +5,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"path"
@@ -15,6 +16,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -98,8 +100,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	//Future use for user commands to get other users stats
+	// _, err = session.CreateCommand(discord.AppID(303741636259872778), api.CreateCommandData{Name: "Get Stats For This User", Type: discord.UserCommand})
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	fmt.Println("Bot is started :D")
+	fmt.Println("Bot is started!")
 
 	<-discordCtx.Done()
 }
@@ -110,8 +117,6 @@ func newMessage(m *gateway.MessageCreateEvent) {
 	if m.Author.Bot {
 		return
 	}
-
-	fmt.Println(m.GuildID)
 
 	if m.GuildID == 0 {
 		//Two cases, if settings in in progress than hand it to the settings menu and if it isn't send initial message and start menu
@@ -135,83 +140,8 @@ func newMessage(m *gateway.MessageCreateEvent) {
 		if me, _ := bot.Me(); me.ID != m.Mentions[0].ID {
 			return
 		}
+		bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Content: "Please use `/getstats` now! Thank you!"})
 
-		//Sends a welcome message to know that the stats are being generated
-		welcomeMsg, _ := bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Content: "Creating Your Stats. Please Wait..."})
-
-		//Var to see what user was mentioned
-		var mentionedUser discord.UserID
-
-		//User getting their own stats
-		if len(m.Mentions) == 1 {
-			mentionedUser = m.Author.ID
-		}
-		//User getting stats for another user
-		if len(m.Mentions) == 2 {
-			//Check here to see if the mentioned user has the setting enabled
-			var userSettings setting
-			ctx, close := context.WithTimeout(context.Background(), time.Second*5)
-			defer close()
-			settingCollection.FindOne(ctx, bson.M{"id": m.Mentions[1].User.ID.String()}).Decode(&userSettings)
-			if !userSettings.MentionForStats {
-				return
-			}
-			mentionedUser = m.Mentions[1].User.ID
-		}
-
-		//Gets the member from the snowflake
-		member, err := bot.Member(m.GuildID, mentionedUser)
-		if err != nil {
-			bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Content: "An error occured within the discord API. Please try again later."})
-			return
-		}
-		currentDir, _ := os.Getwd()
-
-		image := imageGenerate{
-			dir:        path.Join(os.TempDir(), m.Author.ID.String()),
-			staticDir:  path.Join(currentDir, "genImage", "Static"),
-			profileURL: member.User.AvatarURL() + "?size=256",
-			userID:     member.User.ID.String(),
-			name:       member.User.Username,
-		}
-		//Sets up the image to be created
-		imgCaption := "Here your stats! \n("
-		var imagePath string
-		//top 5 is returned so the bot can show the user that their top 5 games are
-		top5, err := image.setup()
-		if err != nil {
-			bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Content: "An error occured while creating an image." + err.Error() + " Please report this error to NerdyRedPanda#7480"})
-			return
-		}
-		top5arr := strings.Split(top5, "\n")
-		//Loops through the top5 to seperate them and put them into a usable format
-		for i := 0; i < len(top5arr)-1; i++ {
-			if i+1 == len(top5arr)-1 {
-				imgCaption += top5arr[i] + ")"
-			} else {
-				imgCaption += top5arr[i] + ", "
-			}
-		}
-
-		imagePath, err = image.createImage()
-		if err != nil {
-			bot.SendMessageComplex(m.ChannelID, api.SendMessageData{Content: "An error occured while creating an image. Please report this error to NerdyRedPanda#7480"})
-			image.cleanup()
-			return
-		}
-		file, _ := os.Open(imagePath)
-		defer file.Close()
-		bot.SendMessageComplex(m.ChannelID, api.SendMessageData{
-			Content: imgCaption,
-			Files: []sendpart.File{
-				{
-					Name:   "Stats.png",
-					Reader: file,
-				},
-			},
-		})
-		image.cleanup()
-		bot.DeleteMessage(m.ChannelID, welcomeMsg.ID, api.AuditLogReason("Finished Stats"))
 	}
 }
 
@@ -288,6 +218,62 @@ func presenceUpdate(p *gateway.PresenceUpdateEvent) {
 	}
 }
 
+func generateImage(guildID discord.GuildID, member *discord.Member) (string, string, error) {
+	//Gets the member from the user and guild ID
+	// member, err := bot.Member(guildID, userID)
+	// if err != nil {
+	// 	return
+	// }
+	currentDir, _ := os.Getwd()
+
+	//Makes sure path is clean if image generation failed previously
+	os.RemoveAll(path.Join(os.TempDir(), member.User.ID.String()))
+
+	image := imageGenerate{
+		dir:        path.Join(os.TempDir(), member.User.ID.String()),
+		staticDir:  path.Join(currentDir, "genImage", "Static"),
+		profileURL: member.User.AvatarURL() + "?size=256",
+		userID:     member.User.ID.String(),
+		name:       member.User.Username,
+	}
+	//Sets up the image to be created
+	imgCaption := "Here your stats! \n("
+	var imagePath string
+	//top 5 is returned so the bot can show the user that their top 5 games are
+	top5, err := image.setup()
+	if err != nil {
+		return "", "", err
+	}
+	top5arr := strings.Split(top5, "\n")
+	//Loops through the top5 to seperate them and put them into a usable format
+	for i := 0; i < len(top5arr)-1; i++ {
+		if i+1 == len(top5arr)-1 {
+			imgCaption += top5arr[i] + ")"
+		} else {
+			imgCaption += top5arr[i] + ", "
+		}
+	}
+
+	imagePath, err = image.createImage()
+	if err != nil {
+		image.cleanup()
+		return "", "", err
+	}
+
+	return imagePath, imgCaption, nil
+}
+
 func newInteraction(interaction *gateway.InteractionCreateEvent) {
-	// bot.CreateInteractionFollowup(interaction.AppID, interaction.Token, api.InteractionResponseData{})
+	bot.RespondInteraction(interaction.ID, interaction.Token, api.InteractionResponse{Type: api.DeferredMessageInteractionWithSource})
+	//Generates the image from the interaction
+	imgPath, imgCaption, err := generateImage(interaction.GuildID, interaction.Member)
+	if err != nil {
+		log.Println("Error Generating UID: " + interaction.Member.User.ID.String())
+		log.Println(err)
+		bot.CreateInteractionFollowup(interaction.AppID, interaction.Token, api.InteractionResponseData{Content: option.NewNullableString("An error has occured. Please try again later.")})
+		return
+	}
+	imgFile, _ := os.Open(imgPath)
+	defer imgFile.Close()
+	bot.CreateInteractionFollowup(interaction.AppID, interaction.Token, api.InteractionResponseData{Content: option.NewNullableString(imgCaption), Files: []sendpart.File{{Name: "Stats.png", Reader: imgFile}}})
 }
