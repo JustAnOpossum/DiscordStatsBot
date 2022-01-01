@@ -96,12 +96,12 @@ func main() {
 	guildBlacklist = strings.Split(blacklists, ",")
 
 	//Registers slash and user commands
-	_, err = session.CreateCommand(discord.AppID(303741636259872778), api.CreateCommandData{Name: "getstats", Description: "Create a graph of your hours in games.", Options: nil, NoDefaultPermission: false, Type: discord.ChatInputCommand})
+	_, err = session.CreateCommand(discord.AppID(461294052529143825), api.CreateCommandData{Name: "getstats", Description: "Create a graph of your hours in games.", Options: nil, NoDefaultPermission: false, Type: discord.ChatInputCommand})
 	if err != nil {
 		panic(err)
 	}
 	//Future use for user commands to get other users stats
-	// _, err = session.CreateCommand(discord.AppID(303741636259872778), api.CreateCommandData{Name: "Get Stats For This User", Type: discord.UserCommand})
+	// _, err = session.CreateCommand(discord.AppID(461294052529143825), api.CreateCommandData{Name: "Get Stats For This User", Type: discord.UserCommand})
 	// if err != nil {
 	// 	panic(err)
 	// }
