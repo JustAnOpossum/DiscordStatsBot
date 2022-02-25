@@ -17,6 +17,7 @@ import (
 	"os/exec"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -79,6 +80,12 @@ func (img *imageGenerate) setup() (string, error) {
 	for i := range stats {
 		var userGame icon
 		//Creates the dir to contain the game data
+
+		//Fixes directory generation when a game has a / in it
+		if strings.Contains(stats[i].Game, "/") {
+			stats[i].Game = strings.ReplaceAll(stats[i].Game, "/", " ")
+		}
+
 		err = os.Mkdir(path.Join(img.dir, stats[i].Game), 0744)
 		if err != nil {
 			return "", err

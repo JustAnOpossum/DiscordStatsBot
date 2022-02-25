@@ -96,16 +96,15 @@ func main() {
 	guildBlacklist = strings.Split(blacklists, ",")
 
 	//Registers slash and user commands
-	_, err = session.CreateCommand(discord.AppID(461294052529143825), api.CreateCommandData{Name: "getstats", Description: "Create a graph of your hours in games.", Options: nil, NoDefaultPermission: false, Type: discord.ChatInputCommand})
+	_, err = session.CreateCommand(discord.AppID(303741636259872778), api.CreateCommandData{Name: "getstats", Description: "Create a graph of your hours in games.", Options: nil, NoDefaultPermission: false, Type: discord.ChatInputCommand})
 	if err != nil {
 		panic(err)
 	}
-	//Future use for user commands to get other users stats
-	// _, err = session.CreateCommand(discord.AppID(461294052529143825), api.CreateCommandData{Name: "Get Stats For This User", Type: discord.UserCommand})
-	// if err != nil {
-	// 	panic(err)
-	// }
-
+	//Slash command for getting other users stats
+	_, err = session.CreateCommand(discord.AppID(303741636259872778), api.CreateCommandData{Name: "getuserstats", Description: "Get stats for another user.", Options: discord.CommandOptions{&discord.UserOption{OptionName: "user", Description: "User to get stats for", Required: true}}, NoDefaultPermission: false, Type: discord.ChatInputCommand})
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("Bot is started!")
 
 	<-discordCtx.Done()
@@ -220,9 +219,9 @@ func presenceUpdate(p *gateway.PresenceUpdateEvent) {
 
 func generateImage(guildID discord.GuildID, member *discord.Member) (string, string, error) {
 	//Gets the member from the user and guild ID
-	// member, err := bot.Member(guildID, userID)
+	// member, err := bot.Member(guildID, member.User.ID)
 	// if err != nil {
-	// 	return
+	// 	return "", "", err
 	// }
 	currentDir, _ := os.Getwd()
 
@@ -265,10 +264,18 @@ func generateImage(guildID discord.GuildID, member *discord.Member) (string, str
 
 func newInteraction(interaction *gateway.InteractionCreateEvent) {
 	bot.RespondInteraction(interaction.ID, interaction.Token, api.InteractionResponse{Type: api.DeferredMessageInteractionWithSource})
+
+	//Checks to see if the interaction is getuserstats
+	discordMember := interaction.Member
+	if len(interaction.Data.(*discord.CommandInteraction).Options) != 0 {
+		newSnowflake, _ := interaction.Data.(*discord.CommandInteraction).Options[0].SnowflakeValue()
+		discordMember, _ = bot.Member(interaction.GuildID, discord.UserID(newSnowflake))
+	}
+
 	//Generates the image from the interaction
-	imgPath, imgCaption, err := generateImage(interaction.GuildID, interaction.Member)
+	imgPath, imgCaption, err := generateImage(interaction.GuildID, discordMember)
 	if err != nil {
-		log.Println("Error Generating UID: " + interaction.Member.User.ID.String())
+		log.Println("Error Generating UID: " + discordMember.User.ID.String())
 		log.Println(err)
 		bot.CreateInteractionFollowup(interaction.AppID, interaction.Token, api.InteractionResponseData{Content: option.NewNullableString("An error has occured. Please try again later.")})
 		return
