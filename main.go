@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"path"
+	"strconv"
 	"strings"
 	"time"
 
@@ -77,6 +78,7 @@ func main() {
 	session.AddHandler(guildAdded)
 	session.AddHandler(newMessage)
 	session.AddHandler(newInteraction)
+	session.AddHandler(guildRemoved)
 	//Identifies intents to receive
 	session.AddIntents(gateway.IntentGuilds | gateway.IntentGuildPresences | gateway.IntentGuildMessages | gateway.IntentDirectMessages | gateway.IntentGuildIntegrations)
 	bot = session
@@ -105,6 +107,17 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	updateGuildsTicker := time.NewTicker(1 * time.Minute)
+
+	//Updates the ammount of servers the bot is in
+	go func() {
+		for {
+			<-updateGuildsTicker.C
+			session.Gateway().Send(context.Background(), &gateway.UpdatePresenceCommand{Activities: []discord.Activity{{Name: "Tracking Stats For " + strconv.Itoa(totalGuilds) + " Servers!", Type: discord.GameActivity}}})
+		}
+	}()
+
 	fmt.Println("Bot is started!")
 
 	<-discordCtx.Done()
@@ -158,6 +171,10 @@ func guildAdded(g *gateway.GuildCreateEvent) {
 			bots[g.Members[i].User.ID.String()] = true
 		}
 	}
+}
+
+func guildRemoved(g *gateway.GuildDeleteEvent) {
+	totalGuilds--
 }
 
 //Handles presence update
