@@ -1,6 +1,6 @@
 # [DiscordStatsBot](https://discordapp.com/oauth2/authorize?client_id=461294052529143825&scope=bot&permissions=0) [![Build Status](https://travis-ci.com/NerdyRedPanda/DiscordStatsBot.svg?branch=master)](https://travis-ci.com/NerdyRedPanda/DiscordStatsBot)
 
-<img src="https://red-panda.me/img/botIcon.png" alt="drawing" width="200"/>
+<img src="https://greyopossum.net/img/botIcon.png" alt="drawing" width="200"/>
 
 ## A bot for discord that tracks your games and displays them in a graph
 
