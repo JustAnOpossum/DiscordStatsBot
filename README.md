@@ -4,13 +4,13 @@
 
 ## A bot for discord that tracks your games and displays them in a graph
 
-<img src="https://red-panda.me/img/statBot/Stats.png" alt="drawing" width="500"/>
+<img src="https://greyopossum.net/img/statBot/Stats.png" alt="drawing" width="500"/>
 
 # **Usage**
 
 ### You just have to mention the bot to get your own stats.
 
-<img src="https://red-panda.me/img/statBot/gettingStats.gif" alt="drawing" />
+<img src="https://greyopossum.net/img/statBot/gettingStats.gif" alt="drawing" />
 
 You can get stats for another member by mentioning the bot and then mentioning them.
 
@@ -18,7 +18,7 @@ You can get stats for another member by mentioning the bot and then mentioning t
 
 To access the settings menu all you have to do is send a DM to the bot and it will let you change your settings.
 
-<img src="https://red-panda.me/img/statBot/Settings.png" alt="drawing" />
+<img src="https://greyopossum.net/img/statBot/Settings.png" alt="drawing" />
 
 ## graph (bar, pie): Your graph type for the images.
 ## hide: Allows you to hide games from your graph.
