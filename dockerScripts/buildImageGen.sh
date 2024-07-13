@@ -6,7 +6,7 @@ apk add jpeg-dev
 
 wget https://github.com/ImageMagick/ImageMagick/archive/refs/tags/7.1.0-57.tar.gz
 tar xf 7.1.0-57.tar.gz
-cd ImageMagick-7.1.0-57
+cd ImageMagick-7.1.0-57 || exit
 ./configure
 make
 make install
