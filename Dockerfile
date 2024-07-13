@@ -11,12 +11,12 @@ RUN go build -o /app/bot
 #Build the image magick module for later
 WORKDIR /scripts
 COPY 'dockerScripts/*' ./
-#RUN './buildImageGen.sh'
+RUN './buildImageGen.sh'
 
 #Builds the image gen component
-#WORKDIR /app/genImage
-#COPY genImage/* ./
-#RUN go mod download
-#RUN go build -o /app/genImage/imageGen
+WORKDIR /app/genImage
+COPY genImage/* ./
+RUN go mod download
+RUN go build -o /app/genImage/imageGen
 
 CMD ["/app/bot"]
