@@ -73,7 +73,7 @@ type bingValue struct {
 func search(gameName string) (bingAnswer, error) {
 	//Starts by creating a new requst to amke the bing search
 	query := url.QueryEscape(gameName + " icon")
-	req, _ := http.NewRequest("GET", "https://api.cognitive.microsoft.com/bing/v7.0/images/search?q="+query, nil)
+	req, _ := http.NewRequest("GET", "https://api.bing.microsoft.com/v7.0/images/search?q="+query, nil)
 	req.Header.Add("Ocp-Apim-Subscription-Key", os.Getenv("BING_KEY"))
 	client := new(http.Client)
 	client.Timeout = time.Second * 5
