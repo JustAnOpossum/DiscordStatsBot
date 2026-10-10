@@ -19,7 +19,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
-	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -41,9 +40,8 @@ var settingCollection *mongo.Collection
 //1. Connects to discord and set's up bot.
 //2. Adds the handlers for discord
 func main() {
-	//Loads environment variables from a local .env file if present.
-	//Real environment variables (e.g. in production) take precedence.
-	_ = godotenv.Load()
+	//Loads environment variables from the .env file for the current APP_ENV.
+	loadEnv()
 
 	//Creats the map to store the bots
 	bots = make(map[string]bool)
@@ -103,12 +101,13 @@ func main() {
 	guildBlacklist = strings.Split(blacklists, ",")
 
 	//Registers slash and user commands
-	_, err = session.CreateCommand(discord.AppID(461294052529143825), api.CreateCommandData{Name: "getstats", Description: "Create a graph of your hours in games.", Options: nil, NoDefaultPermission: false, Type: discord.ChatInputCommand})
+	applicationID := appID()
+	_, err = session.CreateCommand(applicationID, api.CreateCommandData{Name: "getstats", Description: "Create a graph of your hours in games.", Options: nil, NoDefaultPermission: false, Type: discord.ChatInputCommand})
 	if err != nil {
 		panic(err)
 	}
 	//Slash command for getting other users stats
-	_, err = session.CreateCommand(discord.AppID(461294052529143825), api.CreateCommandData{Name: "getuserstats", Description: "Get stats for another user.", Options: discord.CommandOptions{&discord.UserOption{OptionName: "user", Description: "User to get stats for", Required: true}}, NoDefaultPermission: false, Type: discord.ChatInputCommand})
+	_, err = session.CreateCommand(applicationID, api.CreateCommandData{Name: "getuserstats", Description: "Get stats for another user.", Options: discord.CommandOptions{&discord.UserOption{OptionName: "user", Description: "User to get stats for", Required: true}}, NoDefaultPermission: false, Type: discord.ChatInputCommand})
 	if err != nil {
 		panic(err)
 	}

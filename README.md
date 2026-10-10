@@ -30,6 +30,10 @@ To access the settings menu all you have to do is send a DM to the bot and it wi
 
 ## Environment Variables:
 
+APP_ENV: Which environment file to load (dev or prod). Defaults to dev.
+
+APP_ID: Discord application ID for the bot (differs per environment)
+
 BOT_TOKEN: Token for the bot
 
 BING_KEY: Key for the bing image search
