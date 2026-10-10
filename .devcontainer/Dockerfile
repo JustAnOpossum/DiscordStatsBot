@@ -19,4 +19,23 @@ RUN curl -fsSL https://pgp.mongodb.com/server-8.0.asc | gpg -o /usr/share/keyrin
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends mongodb-mongosh \
     && rm -rf /var/lib/apt/lists/*
 
+# ImageMagick 7 built from source, mirroring dockerScripts/buildImageGen.sh
+# (which targets Alpine/apk). The genImage module links against MagickWand-7
+# through cgo, so the dev container needs the same headers/libs as the
+# production image. Same version as prod: 7.1.0-57.
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        build-essential pkg-config wget ca-certificates libpng-dev libjpeg-dev \
+    && wget -q https://github.com/ImageMagick/ImageMagick/archive/refs/tags/7.1.0-57.tar.gz \
+    && tar xf 7.1.0-57.tar.gz \
+    && cd ImageMagick-7.1.0-57 \
+    && ./configure \
+    && make -j"$(nproc)" \
+    && make install \
+    && echo /usr/local/lib > /etc/ld.so.conf.d/imagemagick.conf \
+    && ldconfig \
+    && cd .. \
+    && rm -rf ImageMagick-7.1.0-57 7.1.0-57.tar.gz \
+    && rm -rf /var/lib/apt/lists/*
+
 USER vscode
