@@ -19,6 +19,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -40,6 +41,10 @@ var settingCollection *mongo.Collection
 //1. Connects to discord and set's up bot.
 //2. Adds the handlers for discord
 func main() {
+	//Loads environment variables from a local .env file if present.
+	//Real environment variables (e.g. in production) take precedence.
+	_ = godotenv.Load()
+
 	//Creats the map to store the bots
 	bots = make(map[string]bool)
 	guilds = make(map[string]bool)

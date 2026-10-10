@@ -16,3 +16,6 @@
 .vscode/
 genImage/imageGen
 DiscordStatsBot
+
+# Environment variables / secrets (never commit)
+.env
