@@ -1,0 +1,50 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build: genImage",
+			"type": "shell",
+			"command": "go build -o imageGen .",
+			"options": {
+				"cwd": "${workspaceFolder}/genImage"
+			},
+			"problemMatcher": ["$go"],
+			"group": "build"
+		},
+		{
+			"label": "build: bot",
+			"type": "shell",
+			"command": "go build -o DiscordStatsBot .",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": ["$go"],
+			"group": "build"
+		},
+		{
+			"label": "build: all",
+			"dependsOn": ["build: genImage", "build: bot"],
+			"dependsOrder": "sequence",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"problemMatcher": []
+		},
+		{
+			"label": "run: bot",
+			"type": "shell",
+			"command": "./DiscordStatsBot",
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"dependsOn": ["build: all"],
+			"dependsOrder": "sequence",
+			"presentation": {
+				"reveal": "always",
+				"panel": "dedicated"
+			},
+			"problemMatcher": []
+		}
+	]
+}

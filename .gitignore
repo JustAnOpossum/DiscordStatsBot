@@ -13,5 +13,12 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
-.vscode/
+.vscode/*
+!.vscode/tasks.json
 genImage/imageGen
+DiscordStatsBot
+
+# Environment variables / secrets (never commit)
+.env
+.env.*
+!.env.example
