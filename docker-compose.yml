@@ -1,0 +1,27 @@
+services:
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    # The image's last WORKDIR is /app/genImage, but the bot resolves
+    # genImage/imageGen and genImage/Static relative to its working dir, so
+    # run it from /app where those paths actually live.
+    working_dir: /app
+    env_file:
+      - path: .env.prod
+        required: false
+    environment:
+      APP_ENV: prod
+      DB_STRING: mongodb://mongo:27017
+    depends_on:
+      - mongo
+
+volumes:
+  mongo-data:

@@ -1,0 +1,45 @@
+name: Tests
+
+# Runs on GitHub-hosted runners. For a PUBLIC repo these are free (unlimited
+# Linux minutes) and fully isolated, so untrusted PR code runs in GitHub's
+# sandbox with no secrets and no access to the deploy server.
+on:
+  pull_request:
+    branches: [ "master" ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mongo:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 })'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+          cache: true
+
+      - name: Vet
+        run: go vet ./...
+
+      # Tests connect to mongodb://localhost:27017 (the service above) and make
+      # outbound HTTPS calls to red-panda.me, which GitHub-hosted runners allow.
+      # The genImage module is NOT built here: it needs ImageMagick 7 from
+      # source, which is validated by the self-hosted deploy build instead.
+      - name: Test
+        run: go test -v ./...
