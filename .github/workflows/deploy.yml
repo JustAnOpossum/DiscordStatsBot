@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: read
+  packages: read
 
 # One deploy at a time; never cancel a half-finished deploy.
 concurrency:
@@ -61,6 +62,8 @@ jobs:
           fi
 
       - name: Deploy
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           HOST='${{ secrets.DEPLOY_HOST }}'
@@ -68,6 +71,11 @@ jobs:
           DIR='${{ secrets.DEPLOY_DIR }}'
           SSH="ssh -o StrictHostKeyChecking=accept-new"
           SCP="scp -o StrictHostKeyChecking=accept-new"
+          # GHCR denies anonymous pulls for this package: log the host into
+          # ghcr.io with this run's GITHUB_TOKEN (stdin only, never argv;
+          # the token expires when the run ends).
+          printf '%s' "$GITHUB_TOKEN" | $SSH "$USER@$HOST" "docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin"
           $SSH "$USER@$HOST" "mkdir -p '$DIR'"
           $SCP deploy/docker-compose.prod.yml "$USER@$HOST:$DIR/docker-compose.yml"
           $SSH "$USER@$HOST" "cd '$DIR' && docker compose pull && docker compose up -d && docker image prune -f"
+          $SSH "$USER@$HOST" "docker logout ghcr.io" || true
