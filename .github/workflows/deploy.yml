@@ -1,0 +1,69 @@
+name: Deploy to Production (NetBird)
+
+# Runs AFTER "Docker Image CI" (docker-image.yml) finishes a successful
+# build on master. workflow_run executes in the base-repo context, so
+# secrets are available and fork PRs can never reach this job.
+on:
+  workflow_run:
+    workflows: ["Docker Image CI"]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# One deploy at a time; never cancel a half-finished deploy.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'master')
+    runs-on: ubuntu-latest
+    # Create a "production" environment in repo settings and enable
+    # required reviewers on it: every deploy then needs your manual approval.
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Join NetBird network
+        uses: ankurk91/netbird-action@v2
+        with:
+          setup-key: ${{ secrets.NETBIRD_SETUP_KEY }}
+          peer-name: gh-deploy-${{ github.run_id }}-${{ github.run_attempt }}
+          # Self-hosted NetBird: set NETBIRD_MANAGEMENT_URL as a variable on
+          # the production environment. Falls back to NetBird's cloud when
+          # unset. If self-hosted, management + signal + relay must be
+          # reachable from the public internet (GitHub-hosted runners are not
+          # on your network; the relay is the NAT fallback), and client/
+          # management versions must stay compatible (client >= 0.67.0).
+          management-url: ${{ vars.NETBIRD_MANAGEMENT_URL || 'https://api.netbird.io:443' }}
+          # Set this if DEPLOY_HOST is a MagicDNS-style .netbird.cloud name:
+          # dns-hostnames: ${{ secrets.DEPLOY_HOST }}
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' '${{ secrets.DEPLOY_SSH_KEY }}' > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          if [ -n '${{ secrets.DEPLOY_KNOWN_HOSTS }}' ]; then
+            printf '%s\n' '${{ secrets.DEPLOY_KNOWN_HOSTS }}' >> ~/.ssh/known_hosts
+          fi
+
+      - name: Deploy
+        run: |
+          set -euo pipefail
+          HOST='${{ secrets.DEPLOY_HOST }}'
+          USER='${{ secrets.DEPLOY_USER }}'
+          DIR='${{ secrets.DEPLOY_DIR }}'
+          SSH="ssh -o StrictHostKeyChecking=accept-new"
+          SCP="scp -o StrictHostKeyChecking=accept-new"
+          $SSH "$USER@$HOST" "mkdir -p '$DIR'"
+          $SCP deploy/docker-compose.prod.yml "$USER@$HOST:$DIR/docker-compose.yml"
+          $SSH "$USER@$HOST" "cd '$DIR' && docker compose pull && docker compose up -d && docker image prune -f"

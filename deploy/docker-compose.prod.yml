@@ -1,0 +1,26 @@
+# Server-side compose file. The deploy workflow copies this to the server
+# on every deploy; the server PULLS the image from GHCR and never builds.
+# Secrets (BOT_TOKEN, BING_KEY, ...) live only in .env.prod on the server.
+services:
+  mongo:
+    image: mongo:6.0
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+
+  bot:
+    image: ghcr.io/justananopossum/discordstatsbot:latest
+    restart: unless-stopped
+    # The bot resolves genImage/Static relative to its working dir.
+    working_dir: /app
+    env_file:
+      - path: .env.prod
+        required: true
+    environment:
+      APP_ENV: prod
+      DB_STRING: mongodb://mongo:27017
+    depends_on:
+      - mongo
+
+volumes:
+  mongo-data:
