@@ -26,11 +26,12 @@ server itself.
    | `DEPLOY_SSH_KEY` | Private half of a dedicated ed25519 deploy key |
    | `DEPLOY_KNOWN_HOSTS` | Optional: `ssh-keyscan <netbird-ip>` output to pin the host key |
 
-   Self-hosted NetBird: also set `management-url` in the workflow (see
-   comment in `deploy.yml`) and make sure management, signal, AND relay
-   are reachable from the public internet — GitHub-hosted runners are
-   not on your network, and the relay is the fallback when a direct
-   WireGuard tunnel through NAT fails.
+   **Environment variable** (Settings → Environments → production →
+   Variables — not a secret, it's just an endpoint address):
+
+   | Variable | Value |
+   |---|---|
+   | `NETBIRD_MANAGEMENT_URL` | e.g. `https://netbird.example.com:443` — your self-hosted management service. Leave unset to use NetBird's cloud. When set, management, signal, AND relay must be reachable from the public internet — GitHub-hosted runners are not on your network, and the relay is the fallback when a direct WireGuard tunnel through NAT fails. |
 
 ## One-time server setup
 

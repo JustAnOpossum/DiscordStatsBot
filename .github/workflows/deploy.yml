@@ -37,11 +37,13 @@ jobs:
         with:
           setup-key: ${{ secrets.NETBIRD_SETUP_KEY }}
           peer-name: gh-deploy-${{ github.run_id }}-${{ github.run_attempt }}
-          # Self-hosted NetBird control plane: uncomment and point at YOUR
-          # management service. It (plus signal + relay) must be reachable
-          # from the public internet, since GitHub-hosted runners are not
-          # on your network. Keep client/management versions compatible.
-          # management-url: https://netbird.example.com:443
+          # Self-hosted NetBird: set NETBIRD_MANAGEMENT_URL as a variable on
+          # the production environment. Falls back to NetBird's cloud when
+          # unset. If self-hosted, management + signal + relay must be
+          # reachable from the public internet (GitHub-hosted runners are not
+          # on your network; the relay is the NAT fallback), and client/
+          # management versions must stay compatible (client >= 0.67.0).
+          management-url: ${{ vars.NETBIRD_MANAGEMENT_URL || 'https://api.netbird.io:443' }}
           # Set this if DEPLOY_HOST is a MagicDNS-style .netbird.cloud name:
           # dns-hostnames: ${{ secrets.DEPLOY_HOST }}
 
