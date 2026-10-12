@@ -9,7 +9,7 @@ services:
       - mongo-data:/data/db
 
   bot:
-    image: ghcr.io/justananopossum/discordstatsbot:latest
+    image: ghcr.io/justanopossum/discordstatsbot:latest
     restart: unless-stopped
     # The bot resolves genImage/Static relative to its working dir.
     working_dir: /app
