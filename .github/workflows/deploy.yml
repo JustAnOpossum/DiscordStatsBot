@@ -77,14 +77,5 @@ jobs:
           printf '%s' "$GITHUB_TOKEN" | $SSH "$USER@$HOST" "docker login ghcr.io -u '$GITHUB_ACTOR' --password-stdin"
           $SSH "$USER@$HOST" "mkdir -p '$DIR'"
           $SCP deploy/docker-compose.prod.yml "$USER@$HOST:$DIR/docker-compose.yml"
-          # GHCR tag propagation can lag seconds behind a push (manifest
-          # unknown right after a build); retry the pull before giving up.
-          PULLED=0
-          for i in 1 2 3 4 5; do
-            if $SSH "$USER@$HOST" "cd '$DIR' && docker compose pull"; then PULLED=1; break; fi
-            echo "compose pull attempt $i failed; retrying in 15s"
-            sleep 15
-          done
-          [ "$PULLED" = 1 ] || { echo "::error::docker compose pull failed after 5 attempts"; exit 1; }
-          $SSH "$USER@$HOST" "cd '$DIR' && docker compose up -d && docker image prune -f"
+          $SSH "$USER@$HOST" "cd '$DIR' && docker compose pull && docker compose up -d && docker image prune -f"
           $SSH "$USER@$HOST" "docker logout ghcr.io" || true
