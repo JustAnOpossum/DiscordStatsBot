@@ -48,10 +48,8 @@ jobs:
           # dns-hostnames: ${{ secrets.DEPLOY_HOST }}
 
       # Give the NetBird peer/route a moment to propagate before SSH.
-      - name: Wait for NetBird route
-        uses: timeout@v1
-        with:
-          timeout: 10
+      - name: Sleep for 10 seconds
+        run: sleep 10s
 
       - name: Setup SSH
         run: |
