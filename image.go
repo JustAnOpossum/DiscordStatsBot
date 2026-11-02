@@ -1,6 +1,6 @@
 //Methods for creating the image and downloading the game images
 //Sets up the dir for images and creates the images, and removes the image
-//Also has methods for downloading the images and finding the images from a bing search result.
+//Also has methods for downloading the images and finding the images from an IGDB search result.
 
 package main
 
@@ -39,7 +39,7 @@ func getAndSaveImg(ctx context.Context, gameName string, imgDir string) error {
 	if err != nil {
 		return err
 	}
-	imgURL := getImage(searchResults)
+	imgURL := getImage(searchResults, gameName)
 	hash, err := getHash(imgURL)
 	if err != nil {
 		return err
@@ -178,25 +178,36 @@ func testImg(URL string) bool {
 	return err == nil
 }
 
-//Gets the image from the bing search results
-func getImage(images bingAnswer) string {
-	//First loop checks to see if there is a png image in the array, if there is return it.
-	//If not find jpegs and return that.
-	for i := range images.Value {
-		if images.Value[i].EncodingFormat == "png" {
-			if !testImg(images.Value[i].ContentURL) {
-				continue
-			}
-			return images.Value[i].ContentURL
+//IGDB returns protocol relative cover urls (//images.igdb.com/...), make them fetchable
+func normalizeURL(rawURL string) string {
+	if strings.HasPrefix(rawURL, "//") {
+		return "https:" + rawURL
+	}
+	return rawURL
+}
+
+//Gets the image from the IGDB search results
+func getImage(games []igdbGame, gameName string) string {
+	//Prefers the cover of the game whose name matches exactly, falling back to
+	//the first cover that downloads and decodes.
+	fallback := ""
+	for i := range games {
+		imgURL := normalizeURL(games[i].Cover.URL)
+		if imgURL == "" {
+			continue
+		}
+		if !testImg(imgURL) {
+			continue
+		}
+		if strings.EqualFold(games[i].Name, gameName) {
+			return imgURL
+		}
+		if fallback == "" {
+			fallback = imgURL
 		}
 	}
-	for i := range images.Value {
-		if images.Value[i].EncodingFormat == "jpeg" {
-			if !testImg(images.Value[i].ContentURL) {
-				continue
-			}
-			return images.Value[i].ContentURL
-		}
+	if fallback != "" {
+		return fallback
 	}
 	return "https://red-panda.me/img/botError.png"
 }
