@@ -36,7 +36,9 @@ APP_ID: Discord application ID for the bot (differs per environment)
 
 BOT_TOKEN: Token for the bot
 
-BING_KEY: Key for the bing image search
+TWITCH_CLIENT_ID: Twitch app client ID used for the IGDB image search
+
+TWITCH_CLIENT_SECRET: Twitch app client secret used for the IGDB image search
 
 BLACKLIST: Comma seperated list of guild IDs to ignore updates from
 

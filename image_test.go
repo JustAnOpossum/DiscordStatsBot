@@ -34,20 +34,29 @@ func TestImageDecodingIncorrent(t *testing.T) {
 }
 
 func TestGetImgWithImg(t *testing.T) {
-	mockBing := bingAnswer{
-		Value: []bingValue{
-			{EncodingFormat: "png", ContentURL: "https://red-panda.me/img/connor10.9.png"},
-		},
+	mockGames := []igdbGame{
+		{Name: "some other game", Cover: igdbCover{URL: "//red-panda.me/img/connor10.9.png"}},
 	}
-	URL := getImage(mockBing)
+	URL := getImage(mockGames, "game1")
+	if URL != "https://red-panda.me/img/connor10.9.png" {
+		t.Errorf("Test image failed, URL was " + URL)
+	}
+}
+
+func TestGetImgWithExactName(t *testing.T) {
+	mockGames := []igdbGame{
+		{Name: "some other game", Cover: igdbCover{URL: "https://red-panda.me/img/full/3g5wej.png"}},
+		{Name: "connor10.9", Cover: igdbCover{URL: "https://red-panda.me/img/connor10.9.png"}},
+	}
+	URL := getImage(mockGames, "connor10.9")
 	if URL != "https://red-panda.me/img/connor10.9.png" {
 		t.Errorf("Test image failed, URL was " + URL)
 	}
 }
 
 func TestGetImgWithNo(t *testing.T) {
-	mockBing := bingAnswer{}
-	URL := getImage(mockBing)
+	mockGames := []igdbGame{}
+	URL := getImage(mockGames, "game1")
 	if URL != "https://red-panda.me/img/botError.png" {
 		t.Errorf("Test image failed, URL was " + URL)
 	}
