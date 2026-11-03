@@ -1,4 +1,4 @@
-# [DiscordStatsBot](https://discordapp.com/oauth2/authorize?client_id=461294052529143825&scope=bot&permissions=0) [![Build Status](https://travis-ci.com/NerdyRedPanda/DiscordStatsBot.svg?branch=master)](https://travis-ci.com/NerdyRedPanda/DiscordStatsBot)
+# [DiscordStatsBot](https://discordapp.com/oauth2/authorize?client_id=461294052529143825&scope=bot&permissions=0)
 
 <img src="https://greyopossum.net/img/botIcon.png" alt="drawing" width="200"/>
 
@@ -42,6 +42,27 @@ BLACKLIST: Comma seperated list of guild IDs to ignore updates from
 
 DB_STRING: Connection string for mongodb
 
-## Build info:
+## Build & development
 
-The go program in genImage must be built. It requires imagemagick 7 compiled from source to be built corrently.
+Both Go programs must be built. `genImage/imageGen` cgo-compiles against
+**ImageMagick 7**, so the build needs ImageMagick compiled from source. Rather
+than install it by hand, build and develop inside containers — a single
+`Dockerfile` produces both the small production image and a full dev toolchain
+(the old VS Code devcontainer is gone; use the compose file instead).
+
+Production / CI image (this is what CI builds and pushes, and what the
+production compose runs):
+
+```bash
+podman build -t discordstatsbot .      # default target = runtime
+```
+
+Development environment (Go + ImageMagick toolchain + MongoDB, repo bind-mounted at `/app`):
+
+```bash
+podman-compose -p dsb-dev -f docker-compose.dev.yml up -d --build
+podman-compose -p dsb-dev -f docker-compose.dev.yml exec dev bash
+#   go test ./...
+```
+
+The ImageMagick version is pinned as `IMAGEMAGICK_VERSION` in the `Dockerfile`.
