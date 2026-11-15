@@ -40,6 +40,12 @@ var (
 	tokenExpires time.Time
 )
 
+//Endpoints are vars so tests can point them at local fakes.
+var (
+	twitchTokenURL = "https://id.twitch.tv/oauth2/token"
+	igdbAPIURL     = "https://api.igdb.com/v4/games"
+)
+
 //apqlEscaper makes a game name safe to embed in a quoted ApQL string.
 var apqlEscaper = strings.NewReplacer(`\`, `\\`, `"`, `\"`)
 
@@ -60,7 +66,7 @@ func twitchAccessToken(force bool) (string, error) {
 
 	client := new(http.Client)
 	client.Timeout = time.Second * 10
-	resp, err := client.PostForm("https://id.twitch.tv/oauth2/token", form)
+	resp, err := client.PostForm(twitchTokenURL, form)
 	if err != nil {
 		return "", err
 	}
@@ -98,7 +104,7 @@ func igdbQuery(query string) ([]igdbGame, error) {
 			return nil, err
 		}
 
-		req, err := http.NewRequest("POST", "https://api.igdb.com/v4/games", strings.NewReader(query))
+		req, err := http.NewRequest("POST", igdbAPIURL, strings.NewReader(query))
 		if err != nil {
 			return nil, err
 		}

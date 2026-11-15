@@ -5,9 +5,11 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha1"
 	"encoding/base64"
+	"fmt"
 	"image"
 	_ "image/jpeg"
 	_ "image/png"
@@ -54,26 +56,19 @@ func (img *imageGenerate) getAndSaveImg(ctx context.Context, gameName string, im
 	} else {
 		searchResults = results
 	}
-	imgURL := getImage(searchResults, gameName)
+	imgURL := getImage(searchResults, gameName, testImgURL)
 	if imgURL == "" {
 		log.Println("No IGDB cover found for " + gameName + ", using placeholder icon")
 		return img.savePlaceholderIcon(imgDir, gameName)
 	}
-	hash, err := getHash(imgURL)
+	body, err := download(imgURL)
 	if err != nil {
 		log.Println("Cover download failed for " + gameName + ": " + err.Error())
 		return img.savePlaceholderIcon(imgDir, gameName)
 	}
-	res, err := http.Get(imgURL)
-	if err != nil {
-		log.Println("Cover download failed for " + gameName + ": " + err.Error())
-		return img.savePlaceholderIcon(imgDir, gameName)
-	}
-	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
-	//Only cache a cover that actually downloaded, a dead url stays uncached
-	//and is retried on the next request.
-	_, err = iconCollection.InsertOne(ctx, bson.M{"name": gameName, "url": imgURL, "hash": hash})
+	//Only cache a cover that actually downloaded; the hash is computed from
+	//the same bytes that get saved.
+	_, err = iconCollection.InsertOne(ctx, bson.M{"name": gameName, "url": imgURL, "hash": hashBytes(body)})
 	if err != nil {
 		return err
 	}
@@ -123,29 +118,24 @@ func (img *imageGenerate) setup() (string, error) {
 			}
 			//Case if it does exist
 		} else {
-			hash, _ := getHash(userGame.URL)
-			//If the hashes for the image don't match
-			if hash != userGame.Hash {
+			body, err := download(userGame.URL)
+			if err != nil {
+				//Transient failure keeps the cached document, so the next
+				//request retries the download; the tile just uses the
+				//placeholder this time.
+				log.Println("Cached cover download failed for " + stats[i].Game + ": " + err.Error())
+				if err := img.savePlaceholderIcon(img.dir, stats[i].Game); err != nil {
+					return "", err
+				}
+			} else if hashBytes(body) != userGame.Hash {
+				//The image behind the cached url changed, re-search for it.
 				iconCollection.DeleteOne(ctx, bson.M{"name": userGame.Name})
 				err = img.getAndSaveImg(ctx, stats[i].Game, img.dir)
 				if err != nil {
 					return "", err
 				}
 			} else {
-				res, err := http.Get(userGame.URL)
-				if err != nil {
-					//Transient failure keeps the cached document, so the next
-					//request retries the download; the tile just uses the
-					//placeholder this time.
-					log.Println("Cached cover download failed for " + stats[i].Game + ": " + err.Error())
-					if err := img.savePlaceholderIcon(img.dir, stats[i].Game); err != nil {
-						return "", err
-					}
-				} else {
-					body, _ := ioutil.ReadAll(res.Body)
-					res.Body.Close()
-					ioutil.WriteFile(path.Join(img.dir, stats[i].Game, "icon"), body, 0744)
-				}
+				ioutil.WriteFile(path.Join(img.dir, stats[i].Game, "icon"), body, 0744)
 			}
 		}
 		top5Games += stats[i].Game + "\n"
@@ -197,15 +187,43 @@ func (img *imageGenerate) cleanup() {
 	os.RemoveAll(img.dir)
 }
 
-//Tests to make sure that img is valid
-func testImg(URL string) bool {
-	res, err := http.Get(URL)
+//imgClient bounds every image download so a hanging host cannot stall stats
+//generation.
+var imgClient = &http.Client{Timeout: time.Second * 10}
+
+//download fetches a url and returns its bytes; callers hash, validate and
+//save the returned payload, so an icon is never fetched twice.
+func download(URL string) ([]byte, error) {
+	res, err := imgClient.Get(URL)
 	if err != nil {
-		return false
+		return nil, err
 	}
 	defer res.Body.Close()
-	_, _, err = image.Decode(res.Body)
+	if res.StatusCode != 200 {
+		return nil, fmt.Errorf("url %s answered status %d", URL, res.StatusCode)
+	}
+	return ioutil.ReadAll(res.Body)
+}
+
+//testImg checks that a downloaded payload decodes as an image.
+func testImg(data []byte) bool {
+	_, _, err := image.Decode(bytes.NewReader(data))
 	return err == nil
+}
+
+//testImgURL is the production probe for getImage: the url must download and
+//the payload must decode.
+func testImgURL(URL string) bool {
+	data, err := download(URL)
+	return err == nil && testImg(data)
+}
+
+//hashBytes returns the base64 url safe sha1 of data, used to detect the
+//image behind a cached url having changed.
+func hashBytes(data []byte) string {
+	hash := sha1.New()
+	hash.Write(data)
+	return base64.URLEncoding.EncodeToString(hash.Sum(nil))
 }
 
 //IGDB returns protocol relative cover urls (//images.igdb.com/...), make them fetchable
@@ -216,17 +234,19 @@ func normalizeURL(rawURL string) string {
 	return rawURL
 }
 
-//Gets the image from the IGDB search results
-func getImage(games []igdbGame, gameName string) string {
+//Gets the image from the IGDB search results. The valid probe checks that a
+//candidate url actually serves a decodable image; it is injected so tests
+//need no network.
+func getImage(games []igdbGame, gameName string, valid func(URL string) bool) string {
 	//Prefers the cover of the game whose name matches exactly, falling back to
-	//the first cover that downloads and decodes.
+	//the first cover that passes the probe.
 	fallback := ""
 	for i := range games {
 		imgURL := normalizeURL(games[i].Cover.URL)
 		if imgURL == "" {
 			continue
 		}
-		if !testImg(imgURL) {
+		if !valid(imgURL) {
 			continue
 		}
 		if strings.EqualFold(games[i].Name, gameName) {
@@ -241,17 +261,4 @@ func getImage(games []igdbGame, gameName string) string {
 	}
 	//Nothing matched; the caller substitutes the bundled placeholder icon.
 	return ""
-}
-
-//Gets the hash of the image
-func getHash(URL string) (string, error) {
-	res, err := http.Get(URL)
-	if err != nil {
-		return "", err
-	}
-	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
-	hash := sha1.New()
-	hash.Write(body)
-	return base64.URLEncoding.EncodeToString(hash.Sum(nil)), nil
 }
