@@ -1,0 +1,46 @@
+# Local development environment (podman-compose or docker compose).
+# Builds the `dev` target (Go + ImageMagick-from-source toolchain), bind-mounts
+# this repo at /app for live iteration, and runs MongoDB — replacing the old
+# VS Code devcontainer.
+#
+#   podman-compose -p dsb-dev -f docker-compose.dev.yml up -d --build
+#   podman-compose -p dsb-dev -f docker-compose.dev.yml exec dev bash
+#
+#   # inside the dev shell (repo at /app, ImageMagick installed, DB at the
+#   # mongo service via $DB_STRING):
+#   go test ./...                              # unit tests
+#   (cd genImage && go build -o /tmp/imageGen .)   # exercise the cgo module
+#
+# The production stack (docker-compose.yml) is separate and untouched; keep the
+# `-p dsb-dev` project name (or the *_-dev volume below) so the two never share
+# containers/volumes.
+name: dsb-dev
+
+services:
+  mongo:
+    image: docker.io/library/mongo:6.0
+    restart: unless-stopped
+    volumes:
+      - mongo-data-dev:/data/db
+
+  dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    image: discordstatsbot:dev
+    working_dir: /app
+    volumes:
+      - ./:/app
+    environment:
+      APP_ENV: dev
+      DB_STRING: mongodb://mongo:27017
+    depends_on:
+      - mongo
+    # Keep the container up for interactive use; exec in to run commands.
+    command: sleep infinity
+    stdin_open: true
+    tty: true
+
+volumes:
+  mongo-data-dev:
