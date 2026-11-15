@@ -57,7 +57,7 @@ func TestGetImgWithExactName(t *testing.T) {
 func TestGetImgWithNo(t *testing.T) {
 	mockGames := []igdbGame{}
 	URL := getImage(mockGames, "game1")
-	if URL != "https://red-panda.me/img/botError.png" {
+	if URL != "" {
 		t.Errorf("Test image failed, URL was " + URL)
 	}
 }

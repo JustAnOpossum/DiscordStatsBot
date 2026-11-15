@@ -12,6 +12,7 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"os"
 	"os/exec"
@@ -33,29 +34,50 @@ type imageGenerate struct {
 	name       string
 }
 
-//Gets and saves an image, function so it can be called more than once
-func getAndSaveImg(ctx context.Context, gameName string, imgDir string) error {
-	searchResults, err := search(gameName)
+//Writes the bundled placeholder icon into the game dir. A game whose cover
+//cannot be found or downloaded still renders (one flat tile) instead of
+//failing the whole stats image, and nothing bad is cached, so the next
+//request retries the real lookup.
+func (img *imageGenerate) savePlaceholderIcon(imgDir string, gameName string) error {
+	data, err := ioutil.ReadFile(path.Join(img.staticDir, "iconError.png"))
 	if err != nil {
 		return err
+	}
+	return ioutil.WriteFile(path.Join(imgDir, gameName, "icon"), data, 0744)
+}
+
+//Gets and saves an image, function so it can be called more than once
+func (img *imageGenerate) getAndSaveImg(ctx context.Context, gameName string, imgDir string) error {
+	var searchResults []igdbGame
+	if results, err := search(gameName); err != nil {
+		log.Println("IGDB search failed for " + gameName + ": " + err.Error())
+	} else {
+		searchResults = results
 	}
 	imgURL := getImage(searchResults, gameName)
+	if imgURL == "" {
+		log.Println("No IGDB cover found for " + gameName + ", using placeholder icon")
+		return img.savePlaceholderIcon(imgDir, gameName)
+	}
 	hash, err := getHash(imgURL)
 	if err != nil {
-		return err
+		log.Println("Cover download failed for " + gameName + ": " + err.Error())
+		return img.savePlaceholderIcon(imgDir, gameName)
 	}
+	res, err := http.Get(imgURL)
+	if err != nil {
+		log.Println("Cover download failed for " + gameName + ": " + err.Error())
+		return img.savePlaceholderIcon(imgDir, gameName)
+	}
+	defer res.Body.Close()
+	body, _ := ioutil.ReadAll(res.Body)
+	//Only cache a cover that actually downloaded, a dead url stays uncached
+	//and is retried on the next request.
 	_, err = iconCollection.InsertOne(ctx, bson.M{"name": gameName, "url": imgURL, "hash": hash})
 	if err != nil {
 		return err
 	}
-	res, err := http.Get(imgURL)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	body, _ := ioutil.ReadAll(res.Body)
-	ioutil.WriteFile(path.Join(imgDir, gameName, "icon"), body, 0744)
-	return nil
+	return ioutil.WriteFile(path.Join(imgDir, gameName, "icon"), body, 0744)
 }
 
 //Sets up the dir for image generation
@@ -95,7 +117,7 @@ func (img *imageGenerate) setup() (string, error) {
 		err := iconCollection.FindOne(ctx, bson.M{"name": stats[i].Game}).Decode(&userGame)
 		//Case if the game img does not exist
 		if err == mongo.ErrNoDocuments {
-			err = getAndSaveImg(ctx, stats[i].Game, img.dir)
+			err = img.getAndSaveImg(ctx, stats[i].Game, img.dir)
 			if err != nil {
 				return "", err
 			}
@@ -105,18 +127,26 @@ func (img *imageGenerate) setup() (string, error) {
 			//If the hashes for the image don't match
 			if hash != userGame.Hash {
 				iconCollection.DeleteOne(ctx, bson.M{"name": userGame.Name})
-				err = getAndSaveImg(ctx, stats[i].Game, img.dir)
+				err = img.getAndSaveImg(ctx, stats[i].Game, img.dir)
 				if err != nil {
 					return "", err
 				}
+			} else {
+				res, err := http.Get(userGame.URL)
+				if err != nil {
+					//Transient failure keeps the cached document, so the next
+					//request retries the download; the tile just uses the
+					//placeholder this time.
+					log.Println("Cached cover download failed for " + stats[i].Game + ": " + err.Error())
+					if err := img.savePlaceholderIcon(img.dir, stats[i].Game); err != nil {
+						return "", err
+					}
+				} else {
+					body, _ := ioutil.ReadAll(res.Body)
+					res.Body.Close()
+					ioutil.WriteFile(path.Join(img.dir, stats[i].Game, "icon"), body, 0744)
+				}
 			}
-			res, err := http.Get(userGame.URL)
-			if err != nil {
-				return "", err
-			}
-			defer res.Body.Close()
-			body, _ := ioutil.ReadAll(res.Body)
-			ioutil.WriteFile(path.Join(img.dir, stats[i].Game, "icon"), body, 0744)
 		}
 		top5Games += stats[i].Game + "\n"
 	}
@@ -209,7 +239,8 @@ func getImage(games []igdbGame, gameName string) string {
 	if fallback != "" {
 		return fallback
 	}
-	return "https://red-panda.me/img/botError.png"
+	//Nothing matched; the caller substitutes the bundled placeholder icon.
+	return ""
 }
 
 //Gets the hash of the image
