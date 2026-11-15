@@ -83,9 +83,9 @@ func twitchAccessToken(force bool) (string, error) {
 	return cachedToken, nil
 }
 
-//Searches IGDB for games matching the gameName
-func search(gameName string) ([]igdbGame, error) {
-	query := "fields name, cover.url; search \"" + apqlEscaper.Replace(gameName) + "\"; limit 5;"
+//igdbQuery posts an ApQL query against the IGDB games endpoint, refreshing a
+//stale Twitch token once on 401, and decodes the results.
+func igdbQuery(query string) ([]igdbGame, error) {
 	client := new(http.Client)
 	client.Timeout = time.Second * 10
 
@@ -131,4 +131,24 @@ func search(gameName string) ([]igdbGame, error) {
 		return nil, err
 	}
 	return searchResults, nil
+}
+
+//Searches IGDB for games matching the gameName.
+//A deterministic exact-name query runs first: `where name = "X"` can only
+//return name matches, so DLC and season entries are impossible. Only when it
+//comes back empty (casing or spelling differences, e.g. "DOOM" vs "Doom")
+//does the fuzzy search run; its ranking favours recent DLC over the base
+//game, so the result window is wide enough for getImage to exact-match in.
+func search(gameName string) ([]igdbGame, error) {
+	name := apqlEscaper.Replace(gameName)
+	exact := "fields name, cover.url; where name = \"" + name + "\"; limit 5;"
+	games, err := igdbQuery(exact)
+	if err != nil {
+		return nil, err
+	}
+	if len(games) > 0 {
+		return games, nil
+	}
+	fuzzy := "fields name, cover.url; search \"" + name + "\"; limit 10;"
+	return igdbQuery(fuzzy)
 }
